@@ -4,62 +4,62 @@
     "city": "Ormesson-sur-Marne",
     "contactPhone": "",
     "contactEmail": "",
-    "facebook": "",
+    "facebook": "https://www.facebook.com/LSMC.Original",
     "instagram": "",
-    "helpInfo": "Chapitre Original. Point de contact historique Lag Spirit."
+    "helpInfo": "Chapitre ORIGINAL. Point de contact historique Lag Spirit."
   },
   {
-    "name": "Lag Spirit Ariovistos",
-    "city": "Strasbourg",
+    "name": "Lag Spirit Noormannen",
+    "city": "Caen",
     "contactPhone": "",
     "contactEmail": "",
-    "facebook": "https://www.facebook.com/people/Lag-Spirit-MC-Ariovistos/100066886180772/",
-    "instagram": "https://www.instagram.com/lag.spirit.mc.ariovistos/?igsh=dDczZzhyOHB5amdr",
-    "helpInfo": "Chapitre couvrant Strasbourg et sa région."
+    "facebook": "https://www.facebook.com/lag.spirit.mc.noormannen",
+    "instagram": "",
+    "helpInfo": "Chapitre NOORMANNEN, basé en Normandie (Caen)."
   },
   {
     "name": "Lag Spirit Ho-Norr",
     "city": "Cambrai",
     "contactPhone": "",
     "contactEmail": "",
-    "facebook": "",
+    "facebook": "https://www.facebook.com/LagSpiritMCHonorr",
     "instagram": "",
-    "helpInfo": "Référent secteur Cambrai et environs."
+    "helpInfo": "Chapitre HO-NORR, référent secteur Cambrai et environs."
   },
   {
-    "name": "Lag Spirit City of Pope",
+    "name": "Lag Spirit City of Popes",
     "city": "Avignon",
     "contactPhone": "",
     "contactEmail": "",
-    "facebook": "",
+    "facebook": "https://www.facebook.com/profile.php?id=100057680550132",
     "instagram": "",
-    "helpInfo": "Couvre Avignon et une partie du Sud-Est."
-  },
-  {
-    "name": "Lag Spirit Svadilfary",
-    "city": "Beauvais",
-    "contactPhone": "",
-    "contactEmail": "",
-    "facebook": "",
-    "instagram": "",
-    "helpInfo": "Chapitre basé à Beauvais (Oise)."
-  },
-  {
-    "name": "Lag Spirit Normaneen",
-    "city": "Caen",
-    "contactPhone": "",
-    "contactEmail": "",
-    "facebook": "",
-    "instagram": "",
-    "helpInfo": "Chapitre Normandie, basé à Caen."
+    "helpInfo": "Chapitre CITY OF POPES, couvrant Avignon et le Sud-Est."
   },
   {
     "name": "Lag Spirit Solvkysten",
     "city": "Bordeaux",
     "contactPhone": "",
     "contactEmail": "",
-    "facebook": "",
+    "facebook": "https://www.facebook.com/SOLVKYSTEN",
     "instagram": "",
-    "helpInfo": "Chapitre Bordeaux et Sud-Ouest."
+    "helpInfo": "Chapitre SOLVKYSTEN, Bordeaux et Sud-Ouest."
+  },
+  {
+    "name": "Lag Spirit Ariovistos",
+    "city": "Strasbourg",
+    "contactPhone": "",
+    "contactEmail": "",
+    "facebook": "https://www.facebook.com/Lag-Spirit-MC-Ariovistos-103153038723640",
+    "instagram": "https://www.instagram.com/lag.spirit.mc.ariovistos?igsh=dDczZzhyOHB5amdr",
+    "helpInfo": "Chapitre ARIOVISTOS, couvrant Strasbourg et sa région."
+  },
+  {
+    "name": "Lag Spirit Svadilfari",
+    "city": "Beauvais",
+    "contactPhone": "",
+    "contactEmail": "",
+    "facebook": "https://www.facebook.com/profile.php?id=61566792414717",
+    "instagram": "",
+    "helpInfo": "Chapitre SVADILFARI, basé à Beauvais (Oise)."
   }
 ]
