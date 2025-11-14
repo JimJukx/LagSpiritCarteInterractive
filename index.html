@@ -5,7 +5,7 @@
   <title>Lag Spirit – Aide Harcèlement & Carte des Chapitres</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet pour la carte -->
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -23,6 +23,7 @@
     }
 
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -48,6 +49,7 @@
       display: flex;
       align-items: center;
       gap: 0.6rem;
+      min-width: 0;
     }
 
     .brand-logo {
@@ -75,7 +77,11 @@
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     header .subtitle {
       font-size: 0.82rem;
       opacity: 0.85;
@@ -84,10 +90,12 @@
     .search-area {
       margin-left: auto;
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: flex-end;
     }
+
     .search-area input {
       padding: 0.35rem 0.75rem;
       border-radius: 999px;
@@ -97,11 +105,13 @@
       color: #f5f5f5;
       font-size: 0.85rem;
     }
+
     .search-area input::placeholder {
       color: #777;
     }
+
     .search-area button {
-      padding: 0.35rem 0.9rem;
+      padding: 0.35rem 0.8rem;
       border-radius: 999px;
       border: 1px solid var(--lag-gold);
       background: var(--lag-gold);
@@ -109,9 +119,11 @@
       cursor: pointer;
       font-weight: 600;
       text-transform: uppercase;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       letter-spacing: 0.08em;
+      white-space: nowrap;
     }
+
     .search-area button:hover {
       background: var(--lag-black);
       color: var(--lag-gold);
@@ -122,26 +134,11 @@
       flex: 1;
       min-height: 0;
     }
+
     #map {
       flex: 2;
       height: 100%;
       position: relative;
-    }
-
-    .map-watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.08;
-      pointer-events: none;
-      z-index: 400;
-    }
-    .map-watermark img {
-      max-width: 320px;
-      width: 60%;
-      height: auto;
-      filter: grayscale(100%);
     }
 
     .sidebar {
@@ -155,15 +152,18 @@
       background: #141414;
       color: #f5f5f5;
     }
+
     .sidebar h2 {
       font-size: 1rem;
       margin: 0;
       color: var(--lag-gold);
     }
+
     .info-text {
       font-size: 0.85rem;
       color: #d0d0d0;
     }
+
     .chapter-card {
       margin-top: 0.5rem;
       padding: 0.75rem;
@@ -172,10 +172,12 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
       border: 1px solid #333;
     }
+
     .chapter-card h3 {
       margin: 0 0 0.25rem 0;
       font-size: 1rem;
     }
+
     .chapter-tag {
       display: inline-flex;
       align-items: center;
@@ -190,21 +192,26 @@
       margin-bottom: 0.4rem;
       border: 1px solid var(--lag-gold);
     }
+
     .chapter-card p {
       margin: 0.15rem 0;
       font-size: 0.85rem;
     }
+
     .chapter-card strong {
       font-weight: 600;
       color: var(--lag-gold-soft);
     }
+
     .chapter-card a {
       color: var(--lag-gold-soft);
       text-decoration: none;
     }
+
     .chapter-card a:hover {
       text-decoration: underline;
     }
+
     .help-highlight {
       margin-top: 0.5rem;
       padding: 0.5rem 0.6rem;
@@ -213,6 +220,7 @@
       border: 1px solid rgba(212, 175, 55, 0.6);
       font-size: 0.8rem;
     }
+
     .small {
       font-size: 0.75rem;
       color: #aaaaaa;
@@ -223,6 +231,7 @@
       padding-top: 0.5rem;
       border-top: 1px solid #333;
     }
+
     .chapters-list-title {
       font-size: 0.78rem;
       text-transform: uppercase;
@@ -230,6 +239,7 @@
       color: #cccccc;
       margin-bottom: 0.25rem;
     }
+
     .chapters-list {
       max-height: 180px;
       overflow-y: auto;
@@ -237,6 +247,7 @@
       flex-direction: column;
       gap: 0.25rem;
     }
+
     .chapter-list-item {
       width: 100%;
       display: flex;
@@ -250,28 +261,33 @@
       color: #eee;
       cursor: pointer;
     }
+
     .chapter-list-item:hover {
       border-color: var(--lag-gold-soft);
       background: #202020;
     }
+
     .chapter-list-main {
       display: flex;
       align-items: center;
       gap: 0.35rem;
       overflow: hidden;
     }
+
     .chapter-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
       flex-shrink: 0;
     }
+
     .chapter-name {
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
       max-width: 150px;
     }
+
     .chapter-city {
       font-size: 0.75rem;
       color: #aaaaaa;
@@ -284,6 +300,18 @@
     }
 
     @media (max-width: 800px) {
+      header {
+        align-items: flex-start;
+      }
+      .search-area {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .search-area input {
+        flex: 1;
+        min-width: 0;
+      }
       main {
         flex-direction: column;
       }
@@ -296,17 +324,10 @@
       #map {
         height: 55vh;
       }
-      header {
-        gap: 0.4rem;
-      }
-      .search-area {
-        width: 100%;
-        margin-left: 0;
-        justify-content: flex-start;
-      }
     }
   </style>
 </head>
+
 <body>
 
 <header>
@@ -319,40 +340,37 @@
       <div class="subtitle">Soutien aux victimes de harcèlement • France</div>
     </div>
   </div>
+
   <div class="search-area">
     <input
-      type="text"
       id="city-search"
+      type="text"
       placeholder="Tape ta ville (ex : Lyon, Brest...)"
     />
-    <button id="search-btn">Trouve ton chapitre le plus proche</button>
+    <button id="search-btn">Trouve ton chapitre</button>
+    <button id="geo-btn">Autour de moi</button>
   </div>
 </header>
 
 <main>
-  <div id="map">
-    <div class="map-watermark">
-      <img src="lagspirit-logo.png" alt="Logo Lag Spirit watermark" />
-    </div>
-  </div>
+  <div id="map"></div>
+
   <aside class="sidebar">
-    <h2>Besoin d'aide&nbsp;?</h2>
+    <h2>Besoin d’aide&nbsp;?</h2>
     <p class="info-text">
-      Entre ta ville en haut, ou clique sur ta zone sur la carte.
+      Entre ta ville, clique sur ta zone ou utilise “Autour de moi”.
       Nous t’indiquons le chapitre Lag Spirit qui couvre ta zone,
-      avec ses contacts et les modalités de prise en charge.
+      avec ses contacts.
     </p>
+
     <div id="result-card" class="chapter-card">
       <div class="chapter-tag">Harcèlement</div>
-      <h3>Aucun lieu recherché pour l’instant</h3>
-      <p>
-        Dès que tu entres une ville ou que tu cliques sur la carte,
-        la fiche du chapitre responsable apparaîtra ici.
-      </p>
+      <h3>Aucun lieu recherché</h3>
+      <p>Entre une ville, clique une zone ou utilise “Autour de moi”.</p>
+
       <div class="help-highlight">
-        <strong>Urgence immédiate :</strong><br />
-        contacte les secours (17 / 15) ou le numéro d’écoute adapté
-        selon ta situation.
+        <strong>Urgence :</strong><br/>
+        17 • 15 • 3020 • 3018 • 119
       </div>
     </div>
 
@@ -361,22 +379,16 @@
       <div id="chapters-list" class="chapters-list"></div>
     </div>
 
-    <p class="small">
-      Lag Spirit ne remplace pas les services d’urgence, mais propose un
-      accompagnement humain, local et bienveillant.
-    </p>
+    <p class="small">Lag Spirit apporte une aide humaine, locale et bienveillante.</p>
   </aside>
 </main>
 
 <script>
-  // URL GeoJSON des départements français
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  // Les chapitres seront chargés depuis chapters.json
   let CHAPTERS = [];
 
-  // Palette de 50 couleurs pour les chapitres
   const COLORS = [
     "#e6194b","#3cb44b","#ffe119","#4363d8","#f58231",
     "#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
@@ -400,8 +412,8 @@
   let chapterMarkers = [];
   let departmentLayers = [];
   let selectedChapterIndex = null;
+  let userLocationMarker = null;
 
-  // ============= GÉOCODAGE =============
   function geocodeCity(city) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
     return fetch(url, { headers: { "Accept-Language": "fr" } })
@@ -487,7 +499,6 @@
     });
   }
 
-  // ============= DÉPARTEMENTS =============
   async function loadDepartments() {
     const res = await fetch(DEPARTMENTS_GEOJSON_URL);
     const geojson = await res.json();
@@ -558,7 +569,6 @@
     refreshDepartmentStyles();
   }
 
-  // ============= FICHE RÉSULTAT =============
   function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
     const card = document.getElementById("result-card");
 
@@ -619,7 +629,6 @@
     `;
   }
 
-  // ============= LISTE DES CHAPITRES =============
   function renderChaptersList() {
     const container = document.getElementById("chapters-list");
     if (!container) return;
@@ -653,7 +662,6 @@
     });
   }
 
-  // ============= RECHERCHE VILLE =============
   async function searchCity() {
     const input = document.getElementById("city-search");
     const query = input.value.trim();
@@ -690,12 +698,71 @@
     }
   }
 
+  async function useGeolocation() {
+    if (!navigator.geolocation) {
+      alert("La géolocalisation n’est pas disponible sur ton appareil.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+
+        if (userLocationMarker) {
+          map.removeLayer(userLocationMarker);
+        }
+
+        userLocationMarker = L.circleMarker([latitude, longitude], {
+          radius: 6,
+          color: "#d4af37",
+          weight: 2,
+          fillColor: "#ffffff",
+          fillOpacity: 1
+        }).addTo(map).bindPopup("Ta position approximative");
+
+        let bestChapter = null;
+        let bestDistance = Infinity;
+        let bestIndex = -1;
+
+        CHAPTERS.forEach((chapter, idx) => {
+          if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
+          const d = haversineDistance(latitude, longitude, chapter.lat, chapter.lon);
+          if (d < bestDistance) {
+            bestDistance = d;
+            bestChapter = chapter;
+            bestIndex = idx;
+          }
+        });
+
+        map.setView([latitude, longitude], 7);
+
+        if (bestChapter) {
+          selectedChapterIndex = bestIndex;
+          refreshDepartmentStyles();
+          updateResultCard(bestChapter, "Ta position (GPS)", false, bestDistance);
+        } else {
+          updateResultCard(null, "Ta position (GPS)", true);
+        }
+      },
+      () => {
+        alert("Impossible de récupérer ta position. Vérifie les autorisations de localisation.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 600000
+      }
+    );
+  }
+
   document.getElementById("search-btn").addEventListener("click", searchCity);
   document.getElementById("city-search").addEventListener("keyup", (e) => {
     if (e.key === "Enter") searchCity();
   });
 
-  // ============= CHARGEMENT GLOBAL =============
+  document.getElementById("geo-btn").addEventListener("click", useGeolocation);
+
   async function loadChapters() {
     try {
       const res = await fetch("chapters.json");
@@ -711,7 +778,4 @@
   }
 
   loadChapters();
-</script>
-
-</body>
-</html>
+</scri
