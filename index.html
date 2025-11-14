@@ -247,7 +247,7 @@
       id="city-search"
       placeholder="Tape ta ville (ex : Lyon, Brest...)"
     />
-    <button id="search-btn">Trouver mon référent</button>
+    <button id="search-btn">Trouve ton chapitre le plus proche</button>
   </div>
 </header>
 
@@ -256,15 +256,16 @@
   <aside class="sidebar">
     <h2>Besoin d'aide&nbsp;?</h2>
     <p class="info-text">
-      Entre ta ville en haut. Nous t’indiquons le chapitre Lag Spirit qui
-      couvre ta zone, avec ses contacts et les modalités de prise en charge.
+      Entre ta ville en haut, ou clique sur ta zone sur la carte.
+      Nous t’indiquons le chapitre Lag Spirit qui couvre ta zone,
+      avec ses contacts et les modalités de prise en charge.
     </p>
     <div id="result-card" class="chapter-card">
       <div class="chapter-tag">Harcèlement</div>
       <h3>Aucun lieu recherché pour l’instant</h3>
       <p>
-        Dès que tu entres une ville, la fiche du chapitre responsable
-        apparaîtra ici.
+        Dès que tu entres une ville ou que tu cliques sur la carte,
+        la fiche du chapitre responsable apparaîtra ici.
       </p>
       <div class="help-highlight">
         <strong>Urgence immédiate :</strong><br />
@@ -324,7 +325,7 @@
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.sin(dLat/2) * Math.sin(dDLat/2) +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
@@ -389,7 +390,6 @@
           }
         });
 
-        // Style uniforme (blanc + contour or)
         layer.setStyle({
           color: "#d4af37",
           weight: 1.5,
@@ -412,7 +412,6 @@
 
         layer.bindPopup(popupContent);
 
-        // Effet au survol
         layer.on("mouseover", function () {
           this.setStyle({
             weight: 2.5,
@@ -425,432 +424,19 @@
             fillOpacity: 0.25
           });
         });
+
+        // 👉 CLIC SUR LE DÉPARTEMENT = METTRE À JOUR LA FICHE
+        layer.on("click", function () {
+          if (bestChapter) {
+            updateResultCard(bestChapter, deptName, false, null);
+          }
+        });
       }
     }).addTo(map);
   }
 
   // ==========================
   // 4. FICHE RÉSULTAT
-  // ==========================
-  function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
-    const card = document.getElementById("result-card");
-
-    if (!chapter || notFound) {
-      card.innerHTML = `
-        <div class="chapter-tag">Harcèlement</div>
-        <h3>Ville non trouvée ou hors zone</h3>
-        <p>
-          Nous n’avons pas identifié de chapitre pour <strong>${searchedCity}</strong>.
-        </p>
-        <div class="help-highlight">
-          <strong>Tu peux quand même demander de l’aide.</strong><br />
-          Contacte le chapitre national Lag Spirit ou un référent connu, nous
-          te redirigerons vers la bonne personne.
-        </div>
-      `;
-      return;
-    }
-
-    const phone = chapter.contactPhone
-      ? `<p><strong>Téléphone :</strong> ${chapter.contactPhone}</p>`
-      : "";
-
-    const emailLink = chapter.contactEmail
-      ? `<p><strong>Email :</strong> <a href="mailto:${chapter.contactEmail}" target="_blank">${chapter.contactEmail}</a></p>`
-      : "";
-
-    const facebookLink = chapter.facebook
-      ? `<p><strong>Facebook :</strong> <a href="${chapter.facebook}" target="_blank">Ouvrir la page</a></p>`
-      : "";
-
-    const instagramLink = chapter.instagram
-      ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir le profil</a></p>`
-      : "";
-
-    const dist = distanceKm
-      ? `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km</p>`
-      : "";
-
-    const helpInfo = chapter.helpInfo
-      ? `<div class="help-highlight">${chapter.helpInfo}</div>`
-      : "";
-
-    card.innerHTML = `
-      <div class="chapter-tag">Référent de zone</div>
-      <h3>${chapter.name}</h3>
-
-      <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
-      <p><strong>Ville recherchée :</strong> ${searchedCity}</p>
-      ${dist}
-
-      ${phone}
-      ${emailLink}
-      ${facebookLink}
-      ${instagramLink}
-
-      ${helpInfo}
-    `;
-  }
-
-  // ==========================
-  // 5. RECHERCHE VILLE
-  // ==========================
-  async function searchCity() {
-    const input = document.getElementById("city-search");
-    const query = input.value.trim();
-    if (!query) return;
-
-    const coords = await geocodeCity(query);
-    if (!coords) {
-      updateResultCard(null, query, true);
-      return;
-    }
-
-    let bestChapter = null;
-    let bestDistance = Infinity;
-
-    for (const chapter of CHAPTERS) {
-      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") continue;
-      const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
-      if (d < bestDistance) {
-        bestDistance = d;
-        bestChapter = chapter;
-      }
-    }
-
-    map.setView([coords.lat, coords.lon], 7);
-
-    if (bestChapter) {
-      updateResultCard(bestChapter, query, false, bestDistance);
-    } else {
-      updateResultCard(null, query, true);
-    }
-  }
-
-  document.getElementById("search-btn").addEventListener("click", searchCity);
-  document.getElementById("city-search").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") searchCity();
-  });
-
-  // ==========================
-  // 6. CHARGEMENT DES CHAPITRES + CARTE
-  // ==========================
-  async function loadChapters() {
-    try {
-      const res = await fetch("chapters.json");
-      CHAPTERS = await res.json();
-
-      await initChapters();
-      await loadDepartments();
-    } catch (e) {
-      console.error("Erreur de chargement de chapters.json", e);
-      alert("Impossible de charger la liste des chapitres (chapters.json).");
-    }
-  }
-
-  loadChapters();
-</script>
-
-</body>
-</html>      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    header .subtitle {
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-    .search-area {
-      margin-left: auto;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .search-area input {
-      padding: 0.35rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid #444;
-      min-width: 180px;
-      background: #222;
-      color: #f5f5f5;
-    }
-    .search-area button {
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      border: none;
-      background: #e91e63;
-      color: white;
-      cursor: pointer;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
-    }
-    .search-area button:hover { background: #ff2e7a; }
-
-    main {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-    }
-    #map { flex: 2; height: 100%; }
-    .sidebar {
-      flex: 1;
-      max-width: 380px;
-      border-left: 1px solid #ddd;
-      padding: 0.75rem 0.9rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      background: #fafafa;
-    }
-    .sidebar h2 { font-size: 1rem; margin: 0; }
-    .info-text { font-size: 0.85rem; color: #444; }
-    .chapter-card {
-      margin-top: 0.5rem;
-      padding: 0.75rem;
-      border-radius: 0.75rem;
-      background: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      border: 1px solid #eee;
-    }
-    .chapter-card h3 {
-      margin: 0 0 0.25rem 0;
-      font-size: 1rem;
-    }
-    .chapter-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      background: #111;
-      color: #fff;
-      border-radius: 999px;
-      padding: 0.15rem 0.55rem;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.4rem;
-    }
-    .chapter-card p { margin: 0.15rem 0; font-size: 0.85rem; }
-    .chapter-card strong { font-weight: 600; }
-    .chapter-card a {
-      color: #e91e63;
-      text-decoration: none;
-    }
-    .chapter-card a:hover {
-      text-decoration: underline;
-    }
-    .help-highlight {
-      margin-top: 0.5rem;
-      padding: 0.5rem 0.6rem;
-      border-radius: 0.6rem;
-      background: #fff3cd;
-      border: 1px solid #ffe58f;
-      font-size: 0.8rem;
-    }
-    .small { font-size: 0.75rem; color: #666; }
-
-    @media (max-width: 800px) {
-      main { flex-direction: column; }
-      .sidebar {
-        max-width: none;
-        border-left: none;
-        border-top: 1px solid #ddd;
-        height: 40vh;
-      }
-      #map { height: 60vh; }
-      header { gap: 0.4rem; }
-      .search-area {
-        width: 100%;
-        margin-left: 0;
-        justify-content: flex-start;
-      }
-    }
-  </style>
-</head>
-<body>
-
-<header>
-  <div>
-    <h1>Lag Spirit – Carte des Chapitres</h1>
-    <div class="subtitle">Soutien aux victimes de harcèlement • France</div>
-  </div>
-  <div class="search-area">
-    <input
-      type="text"
-      id="city-search"
-      placeholder="Tape ta ville (ex : Lyon, Brest...)"
-    />
-    <button id="search-btn">Trouver mon référent</button>
-  </div>
-</header>
-
-<main>
-  <div id="map"></div>
-  <aside class="sidebar">
-    <h2>Besoin d'aide&nbsp;?</h2>
-    <p class="info-text">
-      Entre ta ville en haut. Nous t’indiquons le chapitre Lag Spirit qui
-      couvre ta zone, avec ses contacts et les modalités de prise en charge.
-    </p>
-    <div id="result-card" class="chapter-card">
-      <div class="chapter-tag">Harcèlement</div>
-      <h3>Aucun lieu recherché pour l’instant</h3>
-      <p>
-        Dès que tu entres une ville, la fiche du chapitre responsable
-        apparaîtra ici.
-      </p>
-      <div class="help-highlight">
-        <strong>Urgence immédiate :</strong><br />
-        contacte les secours (17 / 15) ou le numéro d’écoute adapté
-        selon ta situation.
-      </div>
-    </div>
-    <p class="small">
-      Lag Spirit ne remplace pas les services d’urgence, mais propose un
-      accompagnement humain, local et bienveillant.
-    </p>
-  </aside>
-</main>
-
-<script>
-  // URL GeoJSON des départements français (version simplifiée)
-  const DEPARTMENTS_GEOJSON_URL =
-    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
-
-  // Les chapitres seront chargés depuis chapters.json
-  let CHAPTERS = [];
-
-  const COLORS = [
-    "#e6194b","#3cb44b","#ffe119","#4363d8",
-    "#f58231","#911eb4","#46f0f0","#f032e6",
-    "#bcf60c","#fabebe","#008080","#e6beff"
-  ];
-
-  // ==========================
-  // 1. CARTE
-  // ==========================
-  const map = L.map("map").setView([46.8, 2.5], 6);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap contributors"
-  }).addTo(map);
-
-  let chapterMarkers = [];
-
-  // ==========================
-  // 2. GÉOCODAGE
-  // ==========================
-  function geocodeCity(city) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
-    return fetch(url, { headers: { "Accept-Language": "fr" } })
-      .then(res => res.json())
-      .then(results => {
-        if (results && results.length > 0) {
-          return {
-            lat: parseFloat(results[0].lat),
-            lon: parseFloat(results[0].lon)
-          };
-        }
-        return null;
-      })
-      .catch(() => null);
-  }
-
-  function haversineDistance(lat1, lon1, lat2, lon2) {
-    function toRad(v) { return v * Math.PI / 180; }
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  async function initChapters() {
-    let i = 0;
-    for (const chapter of CHAPTERS) {
-      const coords = await geocodeCity(chapter.city);
-      if (coords) {
-        chapter.lat = coords.lat;
-        chapter.lon = coords.lon;
-
-        const color = COLORS[i % COLORS.length];
-
-        const marker = L.circleMarker([chapter.lat, chapter.lon], {
-          radius: 7,
-          color: color
-        }).addTo(map);
-
-        marker.bindPopup(`<b>${chapter.name}</b><br>${chapter.city}`);
-
-        chapterMarkers.push(marker);
-        i++;
-      } else {
-        console.warn("Impossible de géocoder la ville:", chapter.city);
-      }
-      await new Promise(r => setTimeout(r, 300));
-    }
-  }
-
-  // ==========================
-  // 3. DÉPARTEMENTS COLORÉS PAR CHAPITRE LE PLUS PROCHE
-  // ==========================
-  async function loadDepartments() {
-    const res = await fetch(DEPARTMENTS_GEOJSON_URL);
-    const geojson = await res.json();
-
-    L.geoJSON(geojson, {
-      style: function () {
-        return {
-          color: "#ccc",
-          weight: 1,
-          fillOpacity: 0.0
-        };
-      },
-      onEachFeature: function (feature, layer) {
-        const center = layer.getBounds().getCenter();
-
-        let bestChapter = null;
-        let bestDistance = Infinity;
-        let bestIndex = 0;
-
-        CHAPTERS.forEach((ch, idx) => {
-          if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
-          const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
-          if (d < bestDistance) {
-            bestDistance = d;
-            bestChapter = ch;
-            bestIndex = idx;
-          }
-        });
-
-        if (bestChapter) {
-          const color = COLORS[bestIndex % COLORS.length];
-          layer.setStyle({
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.18,
-            weight: 1
-          });
-
-          const deptName = feature.properties && (feature.properties.nom || feature.properties.NOM || "Département");
-          layer.bindPopup(
-            `<b>${deptName}</b><br>` +
-            `Chapitre : ${bestChapter.name}<br>` +
-            `Ville du chapitre : ${bestChapter.city}`
-          );
-        }
-      }
-    }).addTo(map);
-  }
-
-  // ==========================
-  // 4. FICHE RÉSULTAT (avec email / FB / Insta)
   // ==========================
   function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
     const card = document.getElementById("result-card");
