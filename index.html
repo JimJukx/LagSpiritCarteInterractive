@@ -125,7 +125,25 @@
     #map {
       flex: 2;
       height: 100%;
+      position: relative;
     }
+
+    .map-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 400;
+    }
+    .map-watermark img {
+      max-width: 320px;
+      width: 60%;
+      height: auto;
+      filter: grayscale(100%);
+    }
+
     .sidebar {
       flex: 1;
       max-width: 380px;
@@ -200,6 +218,67 @@
       color: #aaaaaa;
     }
 
+    .chapters-list-wrapper {
+      margin-top: 0.75rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid #333;
+    }
+    .chapters-list-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #cccccc;
+      margin-bottom: 0.25rem;
+    }
+    .chapters-list {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .chapter-list-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.8rem;
+      color: #eee;
+      cursor: pointer;
+    }
+    .chapter-list-item:hover {
+      border-color: var(--lag-gold-soft);
+      background: #202020;
+    }
+    .chapter-list-main {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      overflow: hidden;
+    }
+    .chapter-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .chapter-name {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 150px;
+    }
+    .chapter-city {
+      font-size: 0.75rem;
+      color: #aaaaaa;
+      margin-left: 0.4rem;
+      white-space: nowrap;
+    }
+
     .leaflet-container {
       background: #101010;
     }
@@ -212,10 +291,10 @@
         max-width: none;
         border-left: none;
         border-top: 1px solid #333;
-        height: 40vh;
+        height: 45vh;
       }
       #map {
-        height: 60vh;
+        height: 55vh;
       }
       header {
         gap: 0.4rem;
@@ -251,7 +330,11 @@
 </header>
 
 <main>
-  <div id="map"></div>
+  <div id="map">
+    <div class="map-watermark">
+      <img src="lagspirit-logo.png" alt="Logo Lag Spirit watermark" />
+    </div>
+  </div>
   <aside class="sidebar">
     <h2>Besoin d'aide&nbsp;?</h2>
     <p class="info-text">
@@ -272,6 +355,12 @@
         selon ta situation.
       </div>
     </div>
+
+    <div class="chapters-list-wrapper">
+      <div class="chapters-list-title">Chapitres Lag Spirit</div>
+      <div id="chapters-list" class="chapters-list"></div>
+    </div>
+
     <p class="small">
       Lag Spirit ne remplace pas les services d’urgence, mais propose un
       accompagnement humain, local et bienveillant.
@@ -280,7 +369,7 @@
 </main>
 
 <script>
-  // URL GeoJSON des départements français (version simplifiée)
+  // URL GeoJSON des départements français
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
@@ -301,9 +390,6 @@
     "#f4a460","#2e8b57","#fff0f5","#708090","#9acd32"
   ];
 
-  // ==========================
-  // 1. CARTE
-  // ==========================
   const map = L.map("map").setView([46.8, 2.5], 6);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -312,10 +398,10 @@
   }).addTo(map);
 
   let chapterMarkers = [];
+  let departmentLayers = [];
+  let selectedChapterIndex = null;
 
-  // ==========================
-  // 2. GÉOCODAGE
-  // ==========================
+  // ============= GÉOCODAGE =============
   function geocodeCity(city) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
     return fetch(url, { headers: { "Accept-Language": "fr" } })
@@ -357,9 +443,9 @@
 
         const marker = L.circleMarker([chapter.lat, chapter.lon], {
           radius: 7,
-          color: "#000000",      // contour noir
+          color: "#000000",
           weight: 2,
-          fillColor: color,     // couleur du chapitre
+          fillColor: color,
           fillOpacity: 1
         }).addTo(map);
 
@@ -374,17 +460,44 @@
     }
   }
 
-  // ==========================
-  // 3. DÉPARTEMENTS COLORÉS PAR CHAPITRE
-  // ==========================
+  function refreshDepartmentStyles() {
+    departmentLayers.forEach(({ layer, chapterIndex, color }) => {
+      if (selectedChapterIndex === null) {
+        layer.setStyle({
+          color: color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.25
+        });
+      } else if (chapterIndex === selectedChapterIndex) {
+        layer.setStyle({
+          color: color,
+          weight: 3,
+          fillColor: color,
+          fillOpacity: 0.45
+        });
+      } else {
+        layer.setStyle({
+          color: color,
+          weight: 1,
+          fillColor: color,
+          fillOpacity: 0.12
+        });
+      }
+    });
+  }
+
+  // ============= DÉPARTEMENTS =============
   async function loadDepartments() {
     const res = await fetch(DEPARTMENTS_GEOJSON_URL);
     const geojson = await res.json();
 
+    departmentLayers = [];
+
     L.geoJSON(geojson, {
       style: function () {
         return {
-          color: "#d4af37",   // sera écrasé ensuite par la bonne couleur
+          color: "#d4af37",
           weight: 1.5,
           fillColor: "#ffffff",
           fillOpacity: 0.25
@@ -414,12 +527,7 @@
         if (bestChapter && bestIndex >= 0) {
           const color = COLORS[bestIndex % COLORS.length];
 
-          layer.setStyle({
-            color: color,
-            weight: 1.5,
-            fillColor: color,
-            fillOpacity: 0.25
-          });
+          departmentLayers.push({ layer, chapterIndex: bestIndex, color });
 
           let popupContent =
             `<b>${deptName}</b><br>` +
@@ -428,27 +536,16 @@
 
           layer.bindPopup(popupContent);
 
-          layer.on("mouseover", function () {
-            this.setStyle({
-              weight: 2.5,
-              fillOpacity: 0.35
-            });
-          });
-          layer.on("mouseout", function () {
-            this.setStyle({
-              weight: 1.5,
-              fillOpacity: 0.25
-            });
-          });
-
-          // Clic = mise à jour de la fiche à droite
           layer.on("click", function () {
+            selectedChapterIndex = bestIndex;
+            refreshDepartmentStyles();
             updateResultCard(bestChapter, deptName, false, null);
           });
         } else {
-          // Pas de chapitre associé : style neutre
+          const color = "#d4af37";
+          departmentLayers.push({ layer, chapterIndex: -1, color });
           layer.setStyle({
-            color: "#d4af37",
+            color: color,
             weight: 1.5,
             fillColor: "#ffffff",
             fillOpacity: 0.15
@@ -457,11 +554,11 @@
         }
       }
     }).addTo(map);
+
+    refreshDepartmentStyles();
   }
 
-  // ==========================
-  // 4. FICHE RÉSULTAT
-  // ==========================
+  // ============= FICHE RÉSULTAT =============
   function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
     const card = document.getElementById("result-card");
 
@@ -522,9 +619,41 @@
     `;
   }
 
-  // ==========================
-  // 5. RECHERCHE VILLE
-  // ==========================
+  // ============= LISTE DES CHAPITRES =============
+  function renderChaptersList() {
+    const container = document.getElementById("chapters-list");
+    if (!container) return;
+    container.innerHTML = "";
+
+    CHAPTERS.forEach((ch, idx) => {
+      const color = COLORS[idx % COLORS.length];
+      const btn = document.createElement("button");
+      btn.className = "chapter-list-item";
+      btn.dataset.idx = idx;
+
+      btn.innerHTML = `
+        <div class="chapter-list-main">
+          <span class="chapter-dot" style="background:${color}"></span>
+          <span class="chapter-name">${ch.name}</span>
+        </div>
+        <span class="chapter-city">${ch.city}</span>
+      `;
+
+      btn.addEventListener("click", () => {
+        selectedChapterIndex = idx;
+        refreshDepartmentStyles();
+
+        if (typeof ch.lat === "number" && typeof ch.lon === "number") {
+          map.setView([ch.lat, ch.lon], 7);
+        }
+        updateResultCard(ch, ch.city, false, null);
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  // ============= RECHERCHE VILLE =============
   async function searchCity() {
     const input = document.getElementById("city-search");
     const query = input.value.trim();
@@ -538,19 +667,23 @@
 
     let bestChapter = null;
     let bestDistance = Infinity;
+    let bestIndex = -1;
 
-    for (const chapter of CHAPTERS) {
-      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") continue;
+    CHAPTERS.forEach((chapter, idx) => {
+      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
       const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
       if (d < bestDistance) {
         bestDistance = d;
         bestChapter = chapter;
+        bestIndex = idx;
       }
-    }
+    });
 
     map.setView([coords.lat, coords.lon], 7);
 
     if (bestChapter) {
+      selectedChapterIndex = bestIndex;
+      refreshDepartmentStyles();
       updateResultCard(bestChapter, query, false, bestDistance);
     } else {
       updateResultCard(null, query, true);
@@ -562,15 +695,14 @@
     if (e.key === "Enter") searchCity();
   });
 
-  // ==========================
-  // 6. CHARGEMENT DES CHAPITRES + CARTE
-  // ==========================
+  // ============= CHARGEMENT GLOBAL =============
   async function loadChapters() {
     try {
       const res = await fetch("chapters.json");
       CHAPTERS = await res.json();
 
       await initChapters();
+      renderChaptersList();
       await loadDepartments();
     } catch (e) {
       console.error("Erreur de chargement de chapters.json", e);
