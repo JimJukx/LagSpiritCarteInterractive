@@ -49,7 +49,6 @@
       display: flex;
       align-items: center;
       gap: 0.6rem;
-      min-width: 0;
     }
 
     .brand-logo {
@@ -77,9 +76,6 @@
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     header .subtitle {
@@ -90,10 +86,9 @@
     .search-area {
       margin-left: auto;
       display: flex;
-      gap: 0.4rem;
+      gap: 0.5rem;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: flex-end;
     }
 
     .search-area input {
@@ -111,7 +106,7 @@
     }
 
     .search-area button {
-      padding: 0.35rem 0.8rem;
+      padding: 0.35rem 0.9rem;
       border-radius: 999px;
       border: 1px solid var(--lag-gold);
       background: var(--lag-gold);
@@ -119,9 +114,8 @@
       cursor: pointer;
       font-weight: 600;
       text-transform: uppercase;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       letter-spacing: 0.08em;
-      white-space: nowrap;
     }
 
     .search-area button:hover {
@@ -300,18 +294,6 @@
     }
 
     @media (max-width: 800px) {
-      header {
-        align-items: flex-start;
-      }
-      .search-area {
-        margin-left: 0;
-        width: 100%;
-        justify-content: flex-start;
-      }
-      .search-area input {
-        flex: 1;
-        min-width: 0;
-      }
       main {
         flex-direction: column;
       }
@@ -323,6 +305,14 @@
       }
       #map {
         height: 55vh;
+      }
+      header {
+        gap: 0.4rem;
+      }
+      .search-area {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
       }
     }
   </style>
@@ -347,8 +337,7 @@
       type="text"
       placeholder="Tape ta ville (ex : Lyon, Brest...)"
     />
-    <button id="search-btn">Trouve ton chapitre</button>
-    <button id="geo-btn">Autour de moi</button>
+    <button id="search-btn">Trouve ton chapitre le plus proche</button>
   </div>
 </header>
 
@@ -358,15 +347,14 @@
   <aside class="sidebar">
     <h2>Besoin d’aide&nbsp;?</h2>
     <p class="info-text">
-      Entre ta ville, clique sur ta zone ou utilise “Autour de moi”.
-      Nous t’indiquons le chapitre Lag Spirit qui couvre ta zone,
-      avec ses contacts.
+      Entre ta ville ou clique sur ta zone sur la carte.
+      Ton chapitre Lag Spirit apparaîtra ici avec ses contacts.
     </p>
 
     <div id="result-card" class="chapter-card">
       <div class="chapter-tag">Harcèlement</div>
       <h3>Aucun lieu recherché</h3>
-      <p>Entre une ville, clique une zone ou utilise “Autour de moi”.</p>
+      <p>Entre une ville ou clique une zone, la fiche du chapitre apparaîtra ici.</p>
 
       <div class="help-highlight">
         <strong>Urgence :</strong><br/>
@@ -384,398 +372,271 @@
 </main>
 
 <script>
-  const DEPARTMENTS_GEOJSON_URL =
-    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
+const DEPARTMENTS_GEOJSON_URL =
+  "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  let CHAPTERS = [];
+let CHAPTERS = [];
 
-  const COLORS = [
-    "#e6194b","#3cb44b","#ffe119","#4363d8","#f58231",
-    "#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
-    "#008080","#e6beff","#9a6324","#fffac8","#800000",
-    "#aaffc3","#808000","#ffd8b1","#000075","#808080",
-    "#ffffff","#000000","#ff7f50","#6495ed","#ff69b4",
-    "#cd5c5c","#ffa500","#40e0d0","#6a5acd","#7fffd4",
-    "#deb887","#5f9ea0","#d2691e","#ffb6c1","#20b2aa",
-    "#87cefa","#778899","#b0c4de","#00fa9a","#9370db",
-    "#3cb371","#7b68ee","#48d1cc","#c71585","#191970",
-    "#f4a460","#2e8b57","#fff0f5","#708090","#9acd32"
-  ];
+const COLORS = [
+  "#e6194b","#3cb44b","#ffe119","#4363d8","#f58231",
+  "#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
+  "#008080","#e6beff","#9a6324","#fffac8","#800000",
+  "#aaffc3","#808000","#ffd8b1","#000075","#808080",
+  "#ffffff","#000000","#ff7f50","#6495ed","#ff69b4",
+  "#cd5c5c","#ffa500","#40e0d0","#6a5acd","#7fffd4",
+  "#deb887","#5f9ea0","#d2691e","#ffb6c1","#20b2aa",
+  "#87cefa","#778899","#b0c4de","#00fa9a","#9370db",
+  "#3cb371","#7b68ee","#48d1cc","#c71585","#191970",
+  "#f4a460","#2e8b57","#fff0f5","#708090","#9acd32"
+];
 
-  const map = L.map("map").setView([46.8, 2.5], 6);
+const map = L.map("map").setView([46.8, 2.5], 6);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap contributors"
-  }).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18,
+  attribution: "© OpenStreetMap contributors"
+}).addTo(map);
 
-  let chapterMarkers = [];
-  let departmentLayers = [];
-  let selectedChapterIndex = null;
-  let userLocationMarker = null;
+let chapterMarkers = [];
+let departmentLayers = [];
+let selectedChapterIndex = null;
 
-  function geocodeCity(city) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
-    return fetch(url, { headers: { "Accept-Language": "fr" } })
-      .then(res => res.json())
-      .then(results => {
-        if (results && results.length > 0) {
-          return {
-            lat: parseFloat(results[0].lat),
-            lon: parseFloat(results[0].lon)
-          };
-        }
-        return null;
-      })
-      .catch(() => null);
-  }
-
-  function haversineDistance(lat1, lon1, lat2, lon2) {
-    function toRad(v) { return v * Math.PI / 180; }
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  async function initChapters() {
-    let i = 0;
-    for (const chapter of CHAPTERS) {
-      const coords = await geocodeCity(chapter.city);
-      if (coords) {
-        chapter.lat = coords.lat;
-        chapter.lon = coords.lon;
-
-        const color = COLORS[i % COLORS.length];
-
-        const marker = L.circleMarker([chapter.lat, chapter.lon], {
-          radius: 7,
-          color: "#000000",
-          weight: 2,
-          fillColor: color,
-          fillOpacity: 1
-        }).addTo(map);
-
-        marker.bindPopup(`<b>${chapter.name}</b><br>${chapter.city}`);
-
-        chapterMarkers.push(marker);
-        i++;
-      } else {
-        console.warn("Impossible de géocoder la ville:", chapter.city);
+function geocodeCity(city) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
+  return fetch(url, { headers: { "Accept-Language": "fr" } })
+    .then(res => res.json())
+    .then(results => {
+      if (results && results.length > 0) {
+        return { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) };
       }
-      await new Promise(r => setTimeout(r, 300));
+      return null;
+    })
+    .catch(() => null);
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  function toRad(v) { return v * Math.PI / 180; }
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+async function initChapters() {
+  let i = 0;
+  for (const chapter of CHAPTERS) {
+    const coords = await geocodeCity(chapter.city);
+    if (coords) {
+      chapter.lat = coords.lat;
+      chapter.lon = coords.lon;
+
+      const color = COLORS[i % COLORS.length];
+
+      const marker = L.circleMarker([chapter.lat, chapter.lon], {
+        radius: 7,
+        color: "#000000",
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 1
+      }).addTo(map);
+
+      marker.bindPopup(`<b>${chapter.name}</b><br>${chapter.city}`);
+
+      chapterMarkers.push(marker);
+      i++;
     }
+    await new Promise(r => setTimeout(r, 300));
   }
+}
 
-  function refreshDepartmentStyles() {
-    departmentLayers.forEach(({ layer, chapterIndex, color }) => {
-      if (selectedChapterIndex === null) {
-        layer.setStyle({
-          color: color,
-          weight: 1.5,
-          fillColor: color,
-          fillOpacity: 0.25
-        });
-      } else if (chapterIndex === selectedChapterIndex) {
-        layer.setStyle({
-          color: color,
-          weight: 3,
-          fillColor: color,
-          fillOpacity: 0.45
-        });
-      } else {
-        layer.setStyle({
-          color: color,
-          weight: 1,
-          fillColor: color,
-          fillOpacity: 0.12
-        });
-      }
-    });
-  }
-
-  async function loadDepartments() {
-    const res = await fetch(DEPARTMENTS_GEOJSON_URL);
-    const geojson = await res.json();
-
-    departmentLayers = [];
-
-    L.geoJSON(geojson, {
-      style: function () {
-        return {
-          color: "#d4af37",
-          weight: 1.5,
-          fillColor: "#ffffff",
-          fillOpacity: 0.25
-        };
-      },
-      onEachFeature: function (feature, layer) {
-        const center = layer.getBounds().getCenter();
-
-        let bestChapter = null;
-        let bestDistance = Infinity;
-        let bestIndex = -1;
-
-        CHAPTERS.forEach((ch, idx) => {
-          if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
-          const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
-          if (d < bestDistance) {
-            bestDistance = d;
-            bestChapter = ch;
-            bestIndex = idx;
-          }
-        });
-
-        const deptName =
-          feature.properties &&
-          (feature.properties.nom || feature.properties.NOM || "Département");
-
-        if (bestChapter && bestIndex >= 0) {
-          const color = COLORS[bestIndex % COLORS.length];
-
-          departmentLayers.push({ layer, chapterIndex: bestIndex, color });
-
-          let popupContent =
-            `<b>${deptName}</b><br>` +
-            `Chapitre : ${bestChapter.name}<br>` +
-            `Ville du chapitre : ${bestChapter.city}`;
-
-          layer.bindPopup(popupContent);
-
-          layer.on("click", function () {
-            selectedChapterIndex = bestIndex;
-            refreshDepartmentStyles();
-            updateResultCard(bestChapter, deptName, false, null);
-          });
-        } else {
-          const color = "#d4af37";
-          departmentLayers.push({ layer, chapterIndex: -1, color });
-          layer.setStyle({
-            color: color,
-            weight: 1.5,
-            fillColor: "#ffffff",
-            fillOpacity: 0.15
-          });
-          layer.bindPopup(`<b>${deptName}</b><br>Aucun chapitre associé pour l’instant.`);
-        }
-      }
-    }).addTo(map);
-
-    refreshDepartmentStyles();
-  }
-
-  function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
-    const card = document.getElementById("result-card");
-
-    if (!chapter || notFound) {
-      card.innerHTML = `
-        <div class="chapter-tag">Harcèlement</div>
-        <h3>Ville non trouvée ou hors zone</h3>
-        <p>
-          Nous n’avons pas identifié de chapitre pour <strong>${searchedCity}</strong>.
-        </p>
-        <div class="help-highlight">
-          <strong>Tu peux quand même demander de l’aide.</strong><br />
-          Contacte le chapitre national Lag Spirit ou un référent connu, nous
-          te redirigerons vers la bonne personne.
-        </div>
-      `;
-      return;
+function refreshDepartmentStyles() {
+  departmentLayers.forEach(({ layer, chapterIndex, color }) => {
+    if (selectedChapterIndex === null) {
+      layer.setStyle({
+        color: color,
+        weight: 1.5,
+        fillColor: color,
+        fillOpacity: 0.25
+      });
+    } else if (chapterIndex === selectedChapterIndex) {
+      layer.setStyle({
+        color: color,
+        weight: 3,
+        fillColor: color,
+        fillOpacity: 0.45
+      });
+    } else {
+      layer.setStyle({
+        color: color,
+        weight: 1,
+        fillColor: color,
+        fillOpacity: 0.12
+      });
     }
+  });
+}
 
-    const phone = chapter.contactPhone
-      ? `<p><strong>Téléphone :</strong> ${chapter.contactPhone}</p>`
-      : "";
+async function loadDepartments() {
+  const res = await fetch(DEPARTMENTS_GEOJSON_URL);
+  const geojson = await res.json();
 
-    const emailLink = chapter.contactEmail
-      ? `<p><strong>Email :</strong> <a href="mailto:${chapter.contactEmail}" target="_blank">${chapter.contactEmail}</a></p>`
-      : "";
+  departmentLayers = [];
 
-    const facebookLink = chapter.facebook
-      ? `<p><strong>Facebook :</strong> <a href="${chapter.facebook}" target="_blank">Ouvrir la page</a></p>`
-      : "";
+  L.geoJSON(geojson, {
+    style: () => ({
+      color: "#d4af37",
+      weight: 1.5,
+      fillColor: "#ffffff",
+      fillOpacity: 0.25
+    }),
+    onEachFeature: function (feature, layer) {
+      const center = layer.getBounds().getCenter();
 
-    const instagramLink = chapter.instagram
-      ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir le profil</a></p>`
-      : "";
+      let bestChapter = null, bestDistance = Infinity, bestIndex = -1;
 
-    const dist = distanceKm
-      ? `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km</p>`
-      : "";
-
-    const helpInfo = chapter.helpInfo
-      ? `<div class="help-highlight">${chapter.helpInfo}</div>`
-      : "";
-
-    card.innerHTML = `
-      <div class="chapter-tag">Référent de zone</div>
-      <h3>${chapter.name}</h3>
-
-      <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
-      <p><strong>Lieu / zone recherchée :</strong> ${searchedCity}</p>
-      ${dist}
-
-      ${phone}
-      ${emailLink}
-      ${facebookLink}
-      ${instagramLink}
-
-      ${helpInfo}
-    `;
-  }
-
-  function renderChaptersList() {
-    const container = document.getElementById("chapters-list");
-    if (!container) return;
-    container.innerHTML = "";
-
-    CHAPTERS.forEach((ch, idx) => {
-      const color = COLORS[idx % COLORS.length];
-      const btn = document.createElement("button");
-      btn.className = "chapter-list-item";
-      btn.dataset.idx = idx;
-
-      btn.innerHTML = `
-        <div class="chapter-list-main">
-          <span class="chapter-dot" style="background:${color}"></span>
-          <span class="chapter-name">${ch.name}</span>
-        </div>
-        <span class="chapter-city">${ch.city}</span>
-      `;
-
-      btn.addEventListener("click", () => {
-        selectedChapterIndex = idx;
-        refreshDepartmentStyles();
-
-        if (typeof ch.lat === "number" && typeof ch.lon === "number") {
-          map.setView([ch.lat, ch.lon], 7);
+      CHAPTERS.forEach((ch, idx) => {
+        if (typeof ch.lat !== "number") return;
+        const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
+        if (d < bestDistance) {
+          bestDistance = d;
+          bestChapter = ch;
+          bestIndex = idx;
         }
-        updateResultCard(ch, ch.city, false, null);
       });
 
-      container.appendChild(btn);
-    });
-  }
+      const deptName =
+        feature.properties &&
+        (feature.properties.nom || feature.properties.NOM || "Département");
 
-  async function searchCity() {
-    const input = document.getElementById("city-search");
-    const query = input.value.trim();
-    if (!query) return;
+      if (bestChapter) {
+        const color = COLORS[bestIndex % COLORS.length];
+        departmentLayers.push({ layer, chapterIndex: bestIndex, color });
 
-    const coords = await geocodeCity(query);
-    if (!coords) {
-      updateResultCard(null, query, true);
-      return;
-    }
+        layer.bindPopup(
+          `<b>${deptName}</b><br>Chapitre : ${bestChapter.name}<br>Ville : ${bestChapter.city}`
+        );
 
-    let bestChapter = null;
-    let bestDistance = Infinity;
-    let bestIndex = -1;
-
-    CHAPTERS.forEach((chapter, idx) => {
-      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
-      const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
-      if (d < bestDistance) {
-        bestDistance = d;
-        bestChapter = chapter;
-        bestIndex = idx;
-      }
-    });
-
-    map.setView([coords.lat, coords.lon], 7);
-
-    if (bestChapter) {
-      selectedChapterIndex = bestIndex;
-      refreshDepartmentStyles();
-      updateResultCard(bestChapter, query, false, bestDistance);
-    } else {
-      updateResultCard(null, query, true);
-    }
-  }
-
-  async function useGeolocation() {
-    if (!navigator.geolocation) {
-      alert("La géolocalisation n’est pas disponible sur ton appareil.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const latitude = pos.coords.latitude;
-        const longitude = pos.coords.longitude;
-
-        if (userLocationMarker) {
-          map.removeLayer(userLocationMarker);
-        }
-
-        userLocationMarker = L.circleMarker([latitude, longitude], {
-          radius: 6,
-          color: "#d4af37",
-          weight: 2,
-          fillColor: "#ffffff",
-          fillOpacity: 1
-        }).addTo(map).bindPopup("Ta position approximative");
-
-        let bestChapter = null;
-        let bestDistance = Infinity;
-        let bestIndex = -1;
-
-        CHAPTERS.forEach((chapter, idx) => {
-          if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
-          const d = haversineDistance(latitude, longitude, chapter.lat, chapter.lon);
-          if (d < bestDistance) {
-            bestDistance = d;
-            bestChapter = chapter;
-            bestIndex = idx;
-          }
-        });
-
-        map.setView([latitude, longitude], 7);
-
-        if (bestChapter) {
+        layer.on("click", () => {
           selectedChapterIndex = bestIndex;
           refreshDepartmentStyles();
-          updateResultCard(bestChapter, "Ta position (GPS)", false, bestDistance);
-        } else {
-          updateResultCard(null, "Ta position (GPS)", true);
-        }
-      },
-      () => {
-        alert("Impossible de récupérer ta position. Vérifie les autorisations de localisation.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 600000
+          updateResultCard(bestChapter, deptName, false, null);
+        });
       }
-    );
+    }
+  }).addTo(map);
+
+  refreshDepartmentStyles();
+}
+
+function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
+  const card = document.getElementById("result-card");
+
+  if (!chapter || notFound) {
+    card.innerHTML = `
+      <div class="chapter-tag">Harcèlement</div>
+      <h3>Ville introuvable</h3>
+      <p>Aucun chapitre trouvé pour <strong>${searchedCity}</strong>.</p>
+      <div class="help-highlight"><strong>Urgence :</strong> 17 / 3020 / 3018</div>
+    `;
+    return;
   }
 
-  document.getElementById("search-btn").addEventListener("click", searchCity);
-  document.getElementById("city-search").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") searchCity();
+  card.innerHTML = `
+    <div class="chapter-tag">Référent de zone</div>
+    <h3>${chapter.name}</h3>
+    <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
+    <p><strong>Lieu recherché :</strong> ${searchedCity}</p>
+    ${distanceKm ? `<p><strong>Distance :</strong> ${distanceKm.toFixed(0)} km</p>` : ""}
+    ${chapter.contactPhone ? `<p><strong>Téléphone :</strong> ${chapter.contactPhone}</p>` : ""}
+    ${chapter.contactEmail ? `<p><strong>Email :</strong> <a href="mailto:${chapter.contactEmail}">${chapter.contactEmail}</a></p>` : ""}
+    ${chapter.facebook ? `<p><strong>Facebook :</strong> <a href="${chapter.facebook}" target="_blank">Ouvrir</a></p>` : ""}
+    ${chapter.instagram ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir</a></p>` : ""}
+    ${chapter.helpInfo ? `<div class="help-highlight">${chapter.helpInfo}</div>` : ""}
+  `;
+}
+
+function renderChaptersList() {
+  const container = document.getElementById("chapters-list");
+  container.innerHTML = "";
+
+  CHAPTERS.forEach((ch, idx) => {
+    const color = COLORS[idx % COLORS.length];
+    const btn = document.createElement("button");
+    btn.className = "chapter-list-item";
+    btn.innerHTML = `
+      <div class="chapter-list-main">
+        <span class="chapter-dot" style="background:${color}"></span>
+        <span class="chapter-name">${ch.name}</span>
+      </div>
+      <span class="chapter-city">${ch.city}</span>
+    `;
+
+    btn.addEventListener("click", () => {
+      selectedChapterIndex = idx;
+      refreshDepartmentStyles();
+      map.setView([ch.lat, ch.lon], 7);
+      updateResultCard(ch, ch.city, false, null);
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+async function searchCity() {
+  const input = document.getElementById("city-search");
+  const query = input.value.trim();
+  if (!query) return;
+
+  const coords = await geocodeCity(query);
+  if (!coords) {
+    updateResultCard(null, query, true);
+    return;
+  }
+
+  let bestChapter = null, bestDistance = Infinity, bestIndex = -1;
+
+  CHAPTERS.forEach((chapter, idx) => {
+    if (!chapter.lat) return;
+    const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
+    if (d < bestDistance) {
+      bestDistance = d;
+      bestChapter = chapter;
+      bestIndex = idx;
+    }
   });
 
-  document.getElementById("geo-btn").addEventListener("click", useGeolocation);
+  map.setView([coords.lat, coords.lon], 7);
 
-  async function loadChapters() {
-    try {
-      const res = await fetch("chapters.json");
-      CHAPTERS = await res.json();
-
-      await initChapters();
-      renderChaptersList();
-      await loadDepartments();
-    } catch (e) {
-      console.error("Erreur de chargement de chapters.json", e);
-      alert("Impossible de charger la liste des chapitres (chapters.json).");
-    }
+  if (bestChapter) {
+    selectedChapterIndex = bestIndex;
+    refreshDepartmentStyles();
+    updateResultCard(bestChapter, query, false, bestDistance);
+  } else {
+    updateResultCard(null, query, true);
   }
+}
 
-  loadChapters();
-</scri
+document.getElementById("search-btn").addEventListener("click", searchCity);
+document.getElementById("city-search").addEventListener("keyup", (e) => {
+  if (e.key === "Enter") searchCity();
+});
+
+async function loadChapters() {
+  const res = await fetch("chapters.json");
+  CHAPTERS = await res.json();
+
+  await initChapters();
+  renderChaptersList();
+  await loadDepartments();
+}
+
+loadChapters();
+</script>
+
+</body>
+</html>
