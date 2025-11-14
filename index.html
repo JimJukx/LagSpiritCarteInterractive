@@ -233,7 +233,6 @@
 <header>
   <div class="brand">
     <div class="brand-logo">
-      <!-- Mets ton fichier de logo dans le même dossier et adapte le nom si besoin -->
       <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
     </div>
     <div>
@@ -288,6 +287,20 @@
   // Les chapitres seront chargés depuis chapters.json
   let CHAPTERS = [];
 
+  // Palette de 50 couleurs pour les chapitres
+  const COLORS = [
+    "#e6194b","#3cb44b","#ffe119","#4363d8","#f58231",
+    "#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
+    "#008080","#e6beff","#9a6324","#fffac8","#800000",
+    "#aaffc3","#808000","#ffd8b1","#000075","#808080",
+    "#ffffff","#000000","#ff7f50","#6495ed","#ff69b4",
+    "#cd5c5c","#ffa500","#40e0d0","#6a5acd","#7fffd4",
+    "#deb887","#5f9ea0","#d2691e","#ffb6c1","#20b2aa",
+    "#87cefa","#778899","#b0c4de","#00fa9a","#9370db",
+    "#3cb371","#7b68ee","#48d1cc","#c71585","#191970",
+    "#f4a460","#2e8b57","#fff0f5","#708090","#9acd32"
+  ];
+
   // ==========================
   // 1. CARTE
   // ==========================
@@ -325,7 +338,7 @@
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
-      Math.sin(dLat/2) * Math.sin(dDLat/2) +
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
@@ -340,11 +353,13 @@
         chapter.lat = coords.lat;
         chapter.lon = coords.lon;
 
+        const color = COLORS[i % COLORS.length];
+
         const marker = L.circleMarker([chapter.lat, chapter.lon], {
           radius: 7,
           color: "#000000",      // contour noir
           weight: 2,
-          fillColor: "#d4af37", // or
+          fillColor: color,     // couleur du chapitre
           fillOpacity: 1
         }).addTo(map);
 
@@ -360,7 +375,7 @@
   }
 
   // ==========================
-  // 3. DÉPARTEMENTS EN BLANC / CONTOUR OR
+  // 3. DÉPARTEMENTS COLORÉS PAR CHAPITRE
   // ==========================
   async function loadDepartments() {
     const res = await fetch(DEPARTMENTS_GEOJSON_URL);
@@ -369,7 +384,7 @@
     L.geoJSON(geojson, {
       style: function () {
         return {
-          color: "#d4af37",
+          color: "#d4af37",   // sera écrasé ensuite par la bonne couleur
           weight: 1.5,
           fillColor: "#ffffff",
           fillOpacity: 0.25
@@ -380,57 +395,66 @@
 
         let bestChapter = null;
         let bestDistance = Infinity;
+        let bestIndex = -1;
 
-        CHAPTERS.forEach((ch) => {
+        CHAPTERS.forEach((ch, idx) => {
           if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
           const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
           if (d < bestDistance) {
             bestDistance = d;
             bestChapter = ch;
+            bestIndex = idx;
           }
-        });
-
-        layer.setStyle({
-          color: "#d4af37",
-          weight: 1.5,
-          fillColor: "#ffffff",
-          fillOpacity: 0.25
         });
 
         const deptName =
           feature.properties &&
           (feature.properties.nom || feature.properties.NOM || "Département");
 
-        let popupContent = `<b>${deptName}</b><br>`;
-        if (bestChapter) {
-          popupContent +=
-            `Chapitre : ${bestChapter.name}<br>` +
-            `Ville du chapitre : ${bestChapter.city}`;
-        } else {
-          popupContent += `Aucun chapitre associé pour l’instant.`;
-        }
+        if (bestChapter && bestIndex >= 0) {
+          const color = COLORS[bestIndex % COLORS.length];
 
-        layer.bindPopup(popupContent);
-
-        layer.on("mouseover", function () {
-          this.setStyle({
-            weight: 2.5,
-            fillOpacity: 0.35
-          });
-        });
-        layer.on("mouseout", function () {
-          this.setStyle({
+          layer.setStyle({
+            color: color,
             weight: 1.5,
+            fillColor: color,
             fillOpacity: 0.25
           });
-        });
 
-        // 👉 CLIC SUR LE DÉPARTEMENT = METTRE À JOUR LA FICHE
-        layer.on("click", function () {
-          if (bestChapter) {
+          let popupContent =
+            `<b>${deptName}</b><br>` +
+            `Chapitre : ${bestChapter.name}<br>` +
+            `Ville du chapitre : ${bestChapter.city}`;
+
+          layer.bindPopup(popupContent);
+
+          layer.on("mouseover", function () {
+            this.setStyle({
+              weight: 2.5,
+              fillOpacity: 0.35
+            });
+          });
+          layer.on("mouseout", function () {
+            this.setStyle({
+              weight: 1.5,
+              fillOpacity: 0.25
+            });
+          });
+
+          // Clic = mise à jour de la fiche à droite
+          layer.on("click", function () {
             updateResultCard(bestChapter, deptName, false, null);
-          }
-        });
+          });
+        } else {
+          // Pas de chapitre associé : style neutre
+          layer.setStyle({
+            color: "#d4af37",
+            weight: 1.5,
+            fillColor: "#ffffff",
+            fillOpacity: 0.15
+          });
+          layer.bindPopup(`<b>${deptName}</b><br>Aucun chapitre associé pour l’instant.`);
+        }
       }
     }).addTo(map);
   }
@@ -486,7 +510,7 @@
       <h3>${chapter.name}</h3>
 
       <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
-      <p><strong>Ville recherchée :</strong> ${searchedCity}</p>
+      <p><strong>Lieu / zone recherchée :</strong> ${searchedCity}</p>
       ${dist}
 
       ${phone}
