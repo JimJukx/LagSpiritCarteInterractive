@@ -37,7 +37,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let departmentLayers = [];
 let selectedChapterIndex = null;
-let searchMarker = null;
+let searchMarker = null;   // point noir + bord or
+let searchHalo = null;     // halo doré autour
 
 //----------------------------------------
 // GEO UTILS
@@ -247,6 +248,32 @@ async function loadDepartments() {
         layer.on("click", () => {
           selectedChapterIndex = bestIndex;
           refreshDepartmentStyles();
+
+          // on utilise le MÊME marqueur que pour la recherche / géoloc
+          if (searchMarker) {
+            map.removeLayer(searchMarker);
+          }
+          searchMarker = L.circleMarker([center.lat, center.lng], {
+            radius: 8,
+            color: "#d4af37",
+            weight: 3,
+            fillColor: "#000000",
+            fillOpacity: 1
+          }).addTo(map);
+
+          if (searchHalo) {
+            map.removeLayer(searchHalo);
+          }
+          searchHalo = L.circle([center.lat, center.lng], {
+            radius: 20000,
+            color: "#d4af37",
+            weight: 1,
+            fillOpacity: 0.15,
+            fillColor: "#d4af37"
+          }).addTo(map);
+
+          map.setView([center.lat, center.lng], 7);
+
           updateResultCard(bestChapter, deptName, false, bestDistance, null);
         });
       } else {
@@ -288,7 +315,6 @@ async function loadDepartments() {
 function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinutes) {
   const card = document.getElementById("result-card");
 
-  // aucun chapitre
   if (!chapter && status) {
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
@@ -303,8 +329,9 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         ou des conseils.
       </p>
       <p style="font-size:0.8rem;opacity:0.9;">
-        Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...).
-        La liste complète est indiquée plus bas dans cette colonne.
+        Pour toute urgence, utilisez directement les numéros d’urgence
+        (17, 15, 18, 112...). La liste complète est indiquée plus bas
+        dans cette colonne.
       </p>
     `;
     return;
@@ -324,8 +351,9 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         ou des conseils.
       </p>
       <p style="font-size:0.8rem;opacity:0.9;">
-        Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...).
-        La liste complète est indiquée plus bas dans cette colonne.
+        Pour toute urgence, utilisez directement les numéros d’urgence
+        (17, 15, 18, 112...). La liste complète est indiquée plus bas
+        dans cette colonne.
       </p>
     `;
     return;
@@ -448,7 +476,35 @@ function renderChaptersList() {
 }
 
 //----------------------------------------
-// RECHERCHE PAR VILLE + MARQUEUR
+// UTIL : créer/mettre à jour le marqueur noir/or + halo
+//----------------------------------------
+
+function setSearchMarker(lat, lon) {
+  if (searchMarker) {
+    map.removeLayer(searchMarker);
+  }
+  searchMarker = L.circleMarker([lat, lon], {
+    radius: 8,
+    color: "#d4af37",
+    weight: 3,
+    fillColor: "#000000",
+    fillOpacity: 1
+  }).addTo(map);
+
+  if (searchHalo) {
+    map.removeLayer(searchHalo);
+  }
+  searchHalo = L.circle([lat, lon], {
+    radius: 20000,
+    color: "#d4af37",
+    weight: 1,
+    fillOpacity: 0.15,
+    fillColor: "#d4af37"
+  }).addTo(map);
+}
+
+//----------------------------------------
+// RECHERCHE PAR VILLE
 //----------------------------------------
 
 async function searchCity() {
@@ -462,17 +518,7 @@ async function searchCity() {
     return;
   }
 
-  if (searchMarker) {
-    map.removeLayer(searchMarker);
-  }
-  searchMarker = L.circleMarker([coords.lat, coords.lon], {
-    radius: 8,
-    color: "#d4af37",
-    weight: 3,
-    fillColor: "#000000",
-    fillOpacity: 1
-  }).addTo(map);
-
+  setSearchMarker(coords.lat, coords.lon);
   map.setView([coords.lat, coords.lon], 7);
 
   let bestChapter = null;
@@ -530,17 +576,7 @@ function locateMe() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
 
-      if (searchMarker) {
-        map.removeLayer(searchMarker);
-      }
-      searchMarker = L.circleMarker([lat, lon], {
-        radius: 8,
-        color: "#d4af37",
-        weight: 3,
-        fillColor: "#000000",
-        fillOpacity: 1
-      }).addTo(map);
-
+      setSearchMarker(lat, lon);
       map.setView([lat, lon], 8);
 
       let bestChapter = null;
@@ -601,6 +637,30 @@ document.getElementById("city-search").addEventListener("keyup", (e) => {
 });
 
 document.getElementById("locate-btn").addEventListener("click", locateMe);
+
+// toggle liste chapitres
+const chaptersListEl = document.getElementById("chapters-list");
+const chaptersToggleBtn = document.getElementById("toggle-chapters");
+if (chaptersListEl && chaptersToggleBtn) {
+  chaptersToggleBtn.addEventListener("click", () => {
+    const isCollapsed = chaptersListEl.classList.toggle("collapsed");
+    chaptersToggleBtn.textContent = isCollapsed ? "Afficher" : "Masquer";
+    chaptersToggleBtn.setAttribute("aria-expanded", !isCollapsed);
+  });
+}
+
+// bouton numéros d'urgence
+const emergencyBtn = document.getElementById("emergency-toggle");
+const emergencyBox = document.getElementById("emergency-numbers");
+if (emergencyBtn && emergencyBox) {
+  emergencyBtn.addEventListener("click", () => {
+    const isVisible = emergencyBox.style.display === "block";
+    emergencyBox.style.display = isVisible ? "none" : "block";
+    emergencyBtn.textContent = isVisible
+      ? "Afficher les numéros d’urgence"
+      : "Masquer les numéros d’urgence";
+  });
+}
 
 //----------------------------------------
 // CHARGEMENT GLOBAL
