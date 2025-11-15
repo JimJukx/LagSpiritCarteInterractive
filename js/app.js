@@ -7,6 +7,7 @@ const DEPARTMENTS_GEOJSON_URL =
 
 const MAX_DISTANCE_KM = 150;
 
+// URL du worker utilisé pour obtenir le temps de trajet
 const ORS_WORKER_URL = "https://lagspirit-ors.jimmy-cattiau.workers.dev";
 
 let CHAPTERS = [];
@@ -37,9 +38,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let departmentLayers = [];
 let selectedChapterIndex = null;
-let searchMarker = null;
-let searchHalo = null;          // halo doré autour du point (recherche / géoloc)
-let deptClickMarker = null;     // petit point au centre du département cliqué
+let searchMarker = null;   // point noir + bord or
+let searchHalo = null;     // halo doré autour
 
 //----------------------------------------
 // GEO UTILS
@@ -250,17 +250,9 @@ async function loadDepartments() {
           selectedChapterIndex = bestIndex;
           refreshDepartmentStyles();
 
-          // petit marqueur au centre du département
-          if (deptClickMarker) {
-            map.removeLayer(deptClickMarker);
-          }
-          deptClickMarker = L.circleMarker([center.lat, center.lng], {
-            radius: 5,
-            color: "#d4af37",
-            weight: 2,
-            fillColor: "#000000",
-            fillOpacity: 1
-          }).addTo(map);
+          // Marqueur noir/or + halo au centre du département
+          setSearchMarker(center.lat, center.lng);
+          map.setView([center.lat, center.lng], 7);
 
           updateResultCard(bestChapter, deptName, false, bestDistance, null);
         });
@@ -464,7 +456,96 @@ function renderChaptersList() {
 }
 
 //----------------------------------------
-// RECHERCHE PAR VILLE + MARQUEUR + HALO
+// UTIL : MARQUEUR noir/or + halo
+//----------------------------------------
+
+function setSearchMarker(lat, lon) {
+  if (searchMarker) {
+    map.removeLayer(searchMarker);
+  }
+  searchMarker = L.circleMarker([lat, lon], {
+    radius: 8,
+    color: "#d4af37",
+    weight: 3,
+    fillColor: "#000000",
+    fillOpacity: 1
+  }).addTo(map);
+
+  if (searchHalo) {
+    map.removeLayer(searchHalo);
+  }
+  searchHalo = L.circle([lat, lon], {
+    radius: 20000,
+    color: "#d4af37",
+    weight: 1,
+    fillOpacity: 0.15,
+    fillColor: "#d4af37"
+  }).addTo(map);
+}
+
+//----------------------------------------
+// NOUVELLE LOGIQUE : TROUVER LE MEILLEUR CHAPITRE
+//----------------------------------------
+// On prend les chapitres les plus proches en km (ex: 5),
+// puis on les compare en TEMPS via l’API (si dispo).
+
+async function findBestChapter(lat, lon) {
+  const candidates = [];
+
+  CHAPTERS.forEach((chapter, idx) => {
+    if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
+      return;
+    const d = haversineDistance(lat, lon, chapter.lat, chapter.lon);
+    candidates.push({ chapter, idx, distance: d });
+  });
+
+  if (candidates.length === 0) return null;
+
+  // Tri par distance croissante
+  candidates.sort((a, b) => a.distance - b.distance);
+
+  // On limite le nombre de chapitres pour lesquels on demande un temps de trajet
+  const MAX_CANDIDATES = Math.min(5, candidates.length);
+  const nearest = candidates.slice(0, MAX_CANDIDATES);
+
+  let bestByTime = null;
+
+  for (const c of nearest) {
+    const minutes = await getTravelTimeMinutes(
+      lat,
+      lon,
+      c.chapter.lat,
+      c.chapter.lon
+    );
+    if (minutes != null) {
+      if (!bestByTime || minutes < bestByTime.travelMinutes) {
+        bestByTime = {
+          chapter: c.chapter,
+          idx: c.idx,
+          distance: c.distance,
+          travelMinutes: minutes
+        };
+      }
+    }
+  }
+
+  // Si on a obtenu au moins un temps de trajet, on choisit celui-là
+  if (bestByTime) {
+    return bestByTime;
+  }
+
+  // Sinon, fallback : le plus proche en km
+  const bestDistanceOnly = candidates[0];
+  return {
+    chapter: bestDistanceOnly.chapter,
+    idx: bestDistanceOnly.idx,
+    distance: bestDistanceOnly.distance,
+    travelMinutes: null
+  };
+}
+
+//----------------------------------------
+// RECHERCHE PAR VILLE
 //----------------------------------------
 
 async function searchCity() {
@@ -478,74 +559,30 @@ async function searchCity() {
     return;
   }
 
-  // point noir/or
-  if (searchMarker) {
-    map.removeLayer(searchMarker);
-  }
-  searchMarker = L.circleMarker([coords.lat, coords.lon], {
-    radius: 8,
-    color: "#d4af37",
-    weight: 3,
-    fillColor: "#000000",
-    fillOpacity: 1
-  }).addTo(map);
-
-  // halo doré autour
-  if (searchHalo) {
-    map.removeLayer(searchHalo);
-  }
-  searchHalo = L.circle([coords.lat, coords.lon], {
-    radius: 20000, // ~20 km
-    color: "#d4af37",
-    weight: 1,
-    fillOpacity: 0.15,
-    fillColor: "#d4af37"
-  }).addTo(map);
-
+  setSearchMarker(coords.lat, coords.lon);
   map.setView([coords.lat, coords.lon], 7);
 
-  let bestChapter = null;
-  let bestDistance = Infinity;
-  let bestIndex = -1;
-
-  CHAPTERS.forEach((chapter, idx) => {
-    if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
-      return;
-    const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
-    if (d < bestDistance) {
-      bestDistance = d;
-      bestChapter = chapter;
-      bestIndex = idx;
-    }
-  });
-
-  if (bestChapter) {
-    const outOfRange = bestDistance > MAX_DISTANCE_KM;
-    selectedChapterIndex = bestIndex;
-    refreshDepartmentStyles();
-
-    let travelMinutes = null;
-    if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
-      travelMinutes = await getTravelTimeMinutes(
-        bestChapter.lat,
-        bestChapter.lon,
-        coords.lat,
-        coords.lon
-      );
-    }
-
-    if (outOfRange) {
-      updateResultCard(bestChapter, query, "far", bestDistance, travelMinutes);
-    } else {
-      updateResultCard(bestChapter, query, false, bestDistance, travelMinutes);
-    }
-  } else {
+  const best = await findBestChapter(coords.lat, coords.lon);
+  if (!best) {
     updateResultCard(null, query, true, null, null);
+    return;
+  }
+
+  const { chapter, idx, distance, travelMinutes } = best;
+
+  const outOfRange = distance > MAX_DISTANCE_KM;
+  selectedChapterIndex = idx;
+  refreshDepartmentStyles();
+
+  if (outOfRange) {
+    updateResultCard(chapter, query, "far", distance, travelMinutes);
+  } else {
+    updateResultCard(chapter, query, false, distance, travelMinutes);
   }
 }
 
 //----------------------------------------
-// BOUTON "ME LOCALISER" + HALO
+// BOUTON "ME LOCALISER"
 //----------------------------------------
 
 function locateMe() {
@@ -559,69 +596,27 @@ function locateMe() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
 
-      if (searchMarker) {
-        map.removeLayer(searchMarker);
-      }
-      searchMarker = L.circleMarker([lat, lon], {
-        radius: 8,
-        color: "#d4af37",
-        weight: 3,
-        fillColor: "#000000",
-        fillOpacity: 1
-      }).addTo(map);
-
-      if (searchHalo) {
-        map.removeLayer(searchHalo);
-      }
-      searchHalo = L.circle([lat, lon], {
-        radius: 20000,
-        color: "#d4af37",
-        weight: 1,
-        fillOpacity: 0.15,
-        fillColor: "#d4af37"
-      }).addTo(map);
-
+      setSearchMarker(lat, lon);
       map.setView([lat, lon], 8);
 
-      let bestChapter = null;
-      let bestDistance = Infinity;
-      let bestIndex = -1;
-
-      CHAPTERS.forEach((chapter, idx) => {
-        if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
-          return;
-        const d = haversineDistance(lat, lon, chapter.lat, chapter.lon);
-        if (d < bestDistance) {
-          bestDistance = d;
-          bestChapter = chapter;
-          bestIndex = idx;
-        }
-      });
-
+      const best = await findBestChapter(lat, lon);
       const label = "Ta localisation";
 
-      if (bestChapter) {
-        const outOfRange = bestDistance > MAX_DISTANCE_KM;
-        selectedChapterIndex = bestIndex;
-        refreshDepartmentStyles();
-
-        let travelMinutes = null;
-        if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
-          travelMinutes = await getTravelTimeMinutes(
-            bestChapter.lat,
-            bestChapter.lon,
-            lat,
-            lon
-          );
-        }
-
-        if (outOfRange) {
-          updateResultCard(bestChapter, label, "far", bestDistance, travelMinutes);
-        } else {
-          updateResultCard(bestChapter, label, false, bestDistance, travelMinutes);
-        }
-      } else {
+      if (!best) {
         updateResultCard(null, label, true, null, null);
+        return;
+      }
+
+      const { chapter, idx, distance, travelMinutes } = best;
+
+      const outOfRange = distance > MAX_DISTANCE_KM;
+      selectedChapterIndex = idx;
+      refreshDepartmentStyles();
+
+      if (outOfRange) {
+        updateResultCard(chapter, label, "far", distance, travelMinutes);
+      } else {
+        updateResultCard(chapter, label, false, distance, travelMinutes);
       }
     },
     (err) => {
@@ -632,7 +627,7 @@ function locateMe() {
 }
 
 //----------------------------------------
-// EVENTS (recherche, localisation, chapitres, numéros d'urgence)
+// EVENTS
 //----------------------------------------
 
 document.getElementById("search-btn").addEventListener("click", searchCity);
