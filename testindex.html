@@ -392,16 +392,15 @@
 </main>
 
 <script>
-  // URL des départements France (simplifiés)
-  var DEPARTMENTS_GEOJSON_URL =
+  const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  // Limite interne (en km) pour la couverture – non affichée à l'utilisateur
-  var MAX_DISTANCE_KM = 150;
+  // Limite de couverture interne (en km) – NON affichée
+  const MAX_DISTANCE_KM = 150;
 
-  var CHAPTERS = [];
+  let CHAPTERS = [];
 
-  var COLORS = [
+  const COLORS = [
     "#e6194b","#3cb44b","#ffe119","#4363d8","#f58231",
     "#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
     "#008080","#e6beff","#9a6324","#fffac8","#800000",
@@ -414,25 +413,22 @@
     "#f4a460","#2e8b57","#fff0f5","#708090","#9acd32"
   ];
 
-  var map = L.map("map").setView([46.8, 2.5], 6);
+  const map = L.map("map").setView([46.8, 2.5], 6);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
     attribution: "© OpenStreetMap contributors"
   }).addTo(map);
 
-  var chapterMarkers = [];
-  var departmentLayers = [];
-  var selectedChapterIndex = null;
+  let chapterMarkers = [];
+  let departmentLayers = [];
+  let selectedChapterIndex = null;
 
   function geocodeCity(city) {
-    var url =
-      "https://nominatim.openstreetmap.org/search?format=json&q=" +
-      encodeURIComponent(city + ", France");
-
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", France")}`;
     return fetch(url, { headers: { "Accept-Language": "fr" } })
-      .then(function(res) { return res.json(); })
-      .then(function(results) {
+      .then(res => res.json())
+      .then(results => {
         if (results && results.length > 0) {
           return {
             lat: parseFloat(results[0].lat),
@@ -441,75 +437,55 @@
         }
         return null;
       })
-      .catch(function() {
-        return null;
-      });
+      .catch(() => null);
   }
 
   function haversineDistance(lat1, lon1, lat2, lon2) {
     function toRad(v) { return v * Math.PI / 180; }
-    var R = 6371;
-    var dLat = toRad(lat2 - lat1);
-    var dLon = toRad(lon2 - lon1);
-    var a =
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
       Math.sin(dLat/2) * Math.sin(dLat/2) +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
       Math.sin(dLon/2) * Math.sin(dLon/2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   }
 
-  function initChapters() {
-    var i = 0;
+  async function initChapters() {
+    let i = 0;
+    for (const chapter of CHAPTERS) {
+      const coords = await geocodeCity(chapter.city);
+      if (coords) {
+        chapter.lat = coords.lat;
+        chapter.lon = coords.lon;
 
-    function processNext(index) {
-      if (index >= CHAPTERS.length) {
-        return Promise.resolve();
+        const color = COLORS[i % COLORS.length];
+
+        const marker = L.circleMarker([chapter.lat, chapter.lon], {
+          radius: 7,
+          color: "#000000",
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 1
+        }).addTo(map);
+
+        marker.bindPopup(`<b>${chapter.name}</b><br>${chapter.city}`);
+
+        chapterMarkers.push(marker);
+        i++;
+      } else {
+        console.warn("Impossible de géocoder la ville:", chapter.city);
       }
-
-      var chapter = CHAPTERS[index];
-
-      return geocodeCity(chapter.city).then(function(coords) {
-        if (coords) {
-          chapter.lat = coords.lat;
-          chapter.lon = coords.lon;
-
-          var color = COLORS[i % COLORS.length];
-          var marker = L.circleMarker([chapter.lat, chapter.lon], {
-            radius: 7,
-            color: "#000000",
-            weight: 2,
-            fillColor: color,
-            fillOpacity: 1
-          }).addTo(map);
-
-          marker.bindPopup("<b>" + chapter.name + "</b><br>" + chapter.city);
-
-          chapterMarkers.push(marker);
-          i++;
-        } else {
-          console.warn("Impossible de géocoder la ville:", chapter.city);
-        }
-
-        return new Promise(function(resolve) {
-          setTimeout(function() {
-            resolve(processNext(index + 1));
-          }, 300);
-        });
-      });
+      await new Promise(r => setTimeout(r, 300));
     }
-
-    return processNext(0);
   }
 
   function refreshDepartmentStyles() {
-    departmentLayers.forEach(function(entry) {
-      var layer = entry.layer;
-      var chapterIndex = entry.chapterIndex;
-      var color = entry.color;
-      var distance = entry.distance;
-
+    departmentLayers.forEach(({ layer, chapterIndex, color, distance }) => {
       if (chapterIndex === -1 || distance > MAX_DISTANCE_KM) {
+        // départements non couverts
         layer.setStyle({
           color: "#555555",
           weight: 1,
@@ -544,204 +520,238 @@
     });
   }
 
-  function loadDepartments() {
-    return fetch(DEPARTMENTS_GEOJSON_URL)
-      .then(function(res) { return res.json(); })
-      .then(function(geojson) {
-        departmentLayers = [];
+  async function loadDepartments() {
+    const res = await fetch(DEPARTMENTS_GEOJSON_URL);
+    const geojson = await res.json();
 
-        L.geoJSON(geojson, {
-          style: function () {
-            return {
-              color: "#d4af37",
-              weight: 1.5,
-              fillColor: "#ffffff",
-              fillOpacity: 0.25
-            };
-          },
-          onEachFeature: function (feature, layer) {
-            var center = layer.getBounds().getCenter();
+    departmentLayers = [];
 
-            var bestChapter = null;
-            var bestDistance = Infinity;
-            var bestIndex = -1;
+    L.geoJSON(geojson, {
+      style: function () {
+        return {
+          color: "#d4af37",
+          weight: 1.5,
+          fillColor: "#ffffff",
+          fillOpacity: 0.25
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const center = layer.getBounds().getCenter();
 
-            CHAPTERS.forEach(function(ch, idx) {
-              if (typeof ch.lat !== "number" || typeof ch.lon !== "number") {
-                return;
-              }
-              var d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
-              if (d < bestDistance) {
-                bestDistance = d;
-                bestChapter = ch;
-                bestIndex = idx;
-              }
-            });
+        let bestChapter = null;
+        let bestDistance = Infinity;
+        let bestIndex = -1;
 
-            var deptName = "Département";
-            if (feature.properties && (feature.properties.nom || feature.properties.NOM)) {
-              deptName = feature.properties.nom || feature.properties.NOM;
-            }
-
-            if (bestChapter && bestIndex >= 0 && bestDistance <= MAX_DISTANCE_KM) {
-              var color = COLORS[bestIndex % COLORS.length];
-
-              departmentLayers.push({
-                layer: layer,
-                chapterIndex: bestIndex,
-                color: color,
-                distance: bestDistance
-              });
-
-              var popupContent =
-                "<b>" + deptName + "</b><br>" +
-                "Chapitre : " + bestChapter.name + "<br>" +
-                "Ville du chapitre : " + bestChapter.city + "<br>" +
-                "<small>Vous pouvez prendre contact avec ce chapitre afin d’obtenir des informations ou des conseils.</small>";
-
-              layer.bindPopup(popupContent);
-
-              layer.on("click", function () {
-                selectedChapterIndex = bestIndex;
-                refreshDepartmentStyles();
-                updateResultCard(bestChapter, deptName, false, bestDistance);
-              });
-            } else {
-              var color2 = "#555555";
-              departmentLayers.push({
-                layer: layer,
-                chapterIndex: -1,
-                color: color2,
-                distance: Infinity
-              });
-
-              layer.setStyle({
-                color: color2,
-                weight: 1,
-                fillColor: "#202020",
-                fillOpacity: 0.15
-              });
-
-              var popupNo =
-                "<b>" + deptName + "</b><br>" +
-                "Aucun chapitre Lag Spirit à proximité.<br>" +
-                "<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br>" +
-                "<small><br><strong>Numéros d’urgence :</strong><br>" +
-                "17 – Police / Gendarmerie<br>" +
-                "15 – SAMU (urgence médicale)<br>" +
-                "3020 – Harcèlement scolaire<br>" +
-                "3018 – Cyberharcèlement et violences numériques<br>" +
-                "119 – Enfance en danger</small>";
-
-              layer.bindPopup(popupNo);
-            }
+        CHAPTERS.forEach((ch, idx) => {
+          if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
+          const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
+          if (d < bestDistance) {
+            bestDistance = d;
+            bestChapter = ch;
+            bestIndex = idx;
           }
-        }).addTo(map);
+        });
 
-        refreshDepartmentStyles();
-      });
+        const deptName =
+          feature.properties &&
+          (feature.properties.nom || feature.properties.NOM || "Département");
+
+        if (bestChapter && bestIndex >= 0 && bestDistance <= MAX_DISTANCE_KM) {
+          const color = COLORS[bestIndex % COLORS.length];
+
+          departmentLayers.push({ layer, chapterIndex: bestIndex, color, distance: bestDistance });
+
+          let popupContent =
+            `<b>${deptName}</b><br>` +
+            `Chapitre : ${bestChapter.name}<br>` +
+            `Ville du chapitre : ${bestChapter.city}<br>` +
+            `<small>Vous pouvez prendre contact avec ce chapitre afin d’obtenir des informations ou des conseils.</small>`;
+
+          layer.bindPopup(popupContent);
+
+          layer.on("click", function () {
+            selectedChapterIndex = bestIndex;
+            refreshDepartmentStyles();
+            updateResultCard(bestChapter, deptName, false, bestDistance);
+          });
+        } else {
+          const color = "#555555";
+          departmentLayers.push({ layer, chapterIndex: -1, color, distance: Infinity });
+
+          layer.setStyle({
+            color: color,
+            weight: 1,
+            fillColor: "#202020",
+            fillOpacity: 0.15
+          });
+
+          layer.bindPopup(
+            `<b>${deptName}</b><br>` +
+            `Aucun chapitre Lag Spirit à proximité.<br>` +
+            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br>` +
+            `<small><br><strong>Numéros d’urgence :</strong><br>` +
+            `17 – Police / Gendarmerie<br>` +
+            `15 – SAMU (urgence médicale)<br>` +
+            `3020 – Harcèlement scolaire<br>` +
+            `3018 – Cyberharcèlement et violences numériques<br>` +
+            `119 – Enfance en danger</small>`
+          );
+        }
+      }
+    }).addTo(map);
+
+    refreshDepartmentStyles();
   }
 
   function updateResultCard(chapter, searchedCity, outOfRange, distanceKm) {
-    var card = document.getElementById("result-card");
+    const card = document.getElementById("result-card");
 
-    // Aucun chapitre trouvé / problème de données
+    // Aucun chapitre (cas d’erreur ou zéro résultat)
     if (!chapter && outOfRange) {
-      card.innerHTML =
-        '<div class="chapter-tag">Chapitre sélectionné</div>' +
-        "<h3>Aucun chapitre à proximité</h3>" +
-        "<p>Aucun chapitre Lag Spirit n’a été identifié à proximité de <strong>" +
-        searchedCity +
-        "</strong>.</p>" +
-        "<p>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche et obtenir des informations ou des conseils.</p>" +
-        '<div class="help-highlight">' +
-        "<strong>Numéros d’urgence :</strong><br>" +
-        "17 – Police / Gendarmerie<br>" +
-        "15 – SAMU (urgence médicale)<br>" +
-        "3020 – Harcèlement scolaire<br>" +
-        "3018 – Cyberharcèlement et violences numériques<br>" +
-        "119 – Enfance en danger" +
-        "</div>";
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>Aucun chapitre à proximité</h3>
+        <p>
+          Aucun chapitre Lag Spirit n’a été identifié à proximité de
+          <strong>${searchedCity}</strong>.
+        </p>
+        <p>
+          Vous pouvez utiliser la recherche en haut de la page pour connaître
+          le chapitre Lag Spirit le plus proche et obtenir des informations
+          ou des conseils.
+        </p>
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
       return;
     }
 
+    // Aucun chapitre trouvé (géocodage KO)
     if (!chapter) {
-      card.innerHTML =
-        '<div class="chapter-tag">Chapitre sélectionné</div>' +
-        "<h3>Aucun chapitre à proximité</h3>" +
-        "<p>Aucun chapitre Lag Spirit n’a été identifié à proximité de <strong>" +
-        searchedCity +
-        "</strong>.</p>" +
-        "<p>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche et obtenir des informations ou des conseils.</p>" +
-        '<div class="help-highlight">' +
-        "<strong>Numéros d’urgence :</strong><br>" +
-        "17 – Police / Gendarmerie<br>" +
-        "15 – SAMU (urgence médicale)<br>" +
-        "3020 – Harcèlement scolaire<br>" +
-        "3018 – Cyberharcèlement et violences numériques<br>" +
-        "119 – Enfance en danger" +
-        "</div>";
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>Aucun chapitre à proximité</h3>
+        <p>
+          Aucun chapitre Lag Spirit n’a été identifié à proximité de
+          <strong>${searchedCity}</strong>.
+        </p>
+        <p>
+          Vous pouvez utiliser la recherche en haut de la page pour connaître
+          le chapitre Lag Spirit le plus proche et obtenir des informations
+          ou des conseils.
+        </p>
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
       return;
     }
 
-    var phone = chapter.contactPhone
-      ? "<p><strong>Téléphone :</strong> " + chapter.contactPhone + "</p>"
+    const phone = chapter.contactPhone
+      ? `<p><strong>Téléphone :</strong> ${chapter.contactPhone}</p>`
       : "";
 
-    var emailLink = chapter.contactEmail
-      ? '<p><strong>Email :</strong> <a href="mailto:' +
-        chapter.contactEmail +
-        '" target="_blank">' +
-        chapter.contactEmail +
-        "</a></p>"
+    const emailLink = chapter.contactEmail
+      ? `<p><strong>Email :</strong> <a href="mailto:${chapter.contactEmail}" target="_blank">${chapter.contactEmail}</a></p>`
       : "";
 
-    var facebookLink = chapter.facebook
-      ? '<p><strong>Facebook :</strong> <a href="' +
-        chapter.facebook +
-        '" target="_blank">Ouvrir la page</a></p>'
+    const facebookLink = chapter.facebook
+      ? `<p><strong>Facebook :</strong> <a href="${chapter.facebook}" target="_blank">Ouvrir la page</a></p>`
       : "";
 
-    var instagramLink = chapter.instagram
-      ? '<p><strong>Instagram :</strong> <a href="' +
-        chapter.instagram +
-        '" target="_blank">Ouvrir le profil</a></p>'
+    const instagramLink = chapter.instagram
+      ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir le profil</a></p>`
       : "";
 
-    var distBlock = "";
-    if (distanceKm) {
-      distBlock =
-        "<p><strong>Distance estimée :</strong> ~" +
-        distanceKm.toFixed(0) +
-        " km</p>";
+    const dist = distanceKm
+      ? `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km</p>`
+      : "";
+
+    const helpInfo = chapter.helpInfo
+      ? `<div class="help-highlight">${chapter.helpInfo}</div>`
+      : "";
+
+    // Cas hors zone : on affiche quand même le chapitre le plus proche + message + numéros d’urgence
+    if (outOfRange && distanceKm) {
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>${chapter.name}</h3>
+
+        <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
+        <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
+        ${dist}
+
+        <p>
+          Ce chapitre est actuellement le plus proche de la zone recherchée,
+          mais la distance peut rendre un déplacement difficile.
+          Tu peux néanmoins les contacter pour être écouté(e), obtenir des conseils
+          et être orienté(e).
+        </p>
+
+        ${phone}
+        ${emailLink}
+        ${facebookLink}
+        ${instagramLink}
+
+        ${helpInfo}
+
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
+      return;
     }
 
-    var helpInfo = chapter.helpInfo
-      ? '<div class="help-highlight">' + chapter.helpInfo + "</div>"
-      : "";
+    // Cas normal : chapitre dans la zone de couverture
+    card.innerHTML = `
+      <div class="chapter-tag">Chapitre sélectionné</div>
+      <h3>${chapter.name}</h3>
 
-    if (outOfRange && distanceKm) {
-      // hors zone de couverture, mais on affiche quand même le chapitre le plus proche
-      card.innerHTML =
-        '<div class="chapter-tag">Chapitre sélectionné</div>' +
-        "<h3>" +
-        chapter.name +
-        "</h3>" +
-        "<p><strong>Ville du chapitre :</strong> " +
-        chapter.city +
-        "</p>" +
-        "<p><strong>Ville / zone recherchée :</strong> " +
-        searchedCity +
-        "</p>" +
-        distBlock +
-        "<p>Ce chapitre est actuellement le plus proche de la zone recherchée, mais la distance peut rendre un déplacement difficile. Tu peux néanmoins les contacter pour être écouté(e), obtenir des conseils et être orienté(e).</p>" +
-        phone +
-        emailLink +
-        facebookLink +
-        instagramLink +
-        helpInfo +
-        '<div class="help-highlight">' +
-        "<strong>Numéros d’urgence :</strong><br>" +
-        "17 – Police / Gendarmerie<br>" +
-        "15 – SAMU (urgence médicale)<br>" +
-        "3020 – Harcèle
+      <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
+      <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
+      ${dist}
+
+      ${phone}
+      ${emailLink}
+      ${facebookLink}
+      ${instagramLink}
+
+      ${helpInfo}
+    `;
+  }
+
+  function renderChaptersList() {
+    const container = document.getElementById("chapters-list");
+    if (!container) return;
+    container.innerHTML = "";
+
+    CHAPTERS.forEach((ch, idx) => {
+      const color = COLORS[idx % COLORS.length];
+      const btn = document.createElement("button");
+      btn.className = "chapter-list-item";
+      btn.dataset.idx = idx;
+
+      btn.innerHTML = `
+        <div class="chapter-list-main">
+          <span class="chapter-dot" style="background:${color}"></span>
+          <span class="chapter-name">${ch.name}</span>
+        </div>
+      `;
+
+      b
