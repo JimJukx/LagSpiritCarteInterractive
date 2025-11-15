@@ -5,10 +5,8 @@
 const DEPARTMENTS_GEOJSON_URL =
   "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-// Limite “zone couverte” en km
 const MAX_DISTANCE_KM = 150;
 
-// URL de ton Worker Cloudflare (proxy OpenRouteService)
 const ORS_WORKER_URL = "https://lagspirit-ors.jimmy-cattiau.workers.dev";
 
 let CHAPTERS = [];
@@ -39,7 +37,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let departmentLayers = [];
 let selectedChapterIndex = null;
-// marqueur de la ville recherchée
 let searchMarker = null;
 
 //----------------------------------------
@@ -81,7 +78,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Temps de trajet approx. en minutes via Worker + ORS
 async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
   if (!ORS_WORKER_URL) return null;
 
@@ -272,13 +268,7 @@ async function loadDepartments() {
         layer.bindPopup(
           `<b>${deptName}</b><br>` +
             `Aucun chapitre Lag Spirit à proximité.<br>` +
-            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br><br>` +
-            `<small><strong>Numéros d’urgence :</strong><br>` +
-            `17 – Police / Gendarmerie<br>` +
-            `15 – SAMU (urgence médicale)<br>` +
-            `3020 – Harcèlement scolaire<br>` +
-            `3018 – Cyberharcèlement et violences numériques<br>` +
-            `119 – Enfance en danger</small>`
+            `<small>Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...). La liste complète est indiquée dans la colonne d’aide.</small>`
         );
       }
     }
@@ -312,14 +302,10 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         le chapitre Lag Spirit le plus proche et obtenir des informations
         ou des conseils.
       </p>
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
+      <p style="font-size:0.8rem;opacity:0.9;">
+        Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...).
+        La liste complète est indiquée plus bas dans cette colonne.
+      </p>
     `;
     return;
   }
@@ -337,14 +323,10 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         le chapitre Lag Spirit le plus proche et obtenir des informations
         ou des conseils.
       </p>
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
+      <p style="font-size:0.8rem;opacity:0.9;">
+        Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...).
+        La liste complète est indiquée plus bas dans cette colonne.
+      </p>
     `;
     return;
   }
@@ -408,15 +390,6 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
       ${instagramLink}
 
       ${helpInfo}
-
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
     `;
     return;
   }
@@ -475,7 +448,7 @@ function renderChaptersList() {
 }
 
 //----------------------------------------
-// RECHERCHE + MARQUEUR DE VILLE
+// RECHERCHE PAR VILLE + MARQUEUR
 //----------------------------------------
 
 async function searchCity() {
@@ -489,15 +462,14 @@ async function searchCity() {
     return;
   }
 
-  // 👉 Marqueur de la ville recherchée
   if (searchMarker) {
     map.removeLayer(searchMarker);
   }
   searchMarker = L.circleMarker([coords.lat, coords.lon], {
-    radius: 7,
-    color: "#d4af37",      // contour or
-    weight: 2,
-    fillColor: "#ffffff",  // centre blanc
+    radius: 8,
+    color: "#d4af37",
+    weight: 3,
+    fillColor: "#000000",
     fillOpacity: 1
   }).addTo(map);
 
@@ -544,6 +516,82 @@ async function searchCity() {
 }
 
 //----------------------------------------
+// BOUTON "ME LOCALISER"
+//----------------------------------------
+
+function locateMe() {
+  if (!navigator.geolocation) {
+    alert("La géolocalisation n’est pas supportée sur cet appareil.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      if (searchMarker) {
+        map.removeLayer(searchMarker);
+      }
+      searchMarker = L.circleMarker([lat, lon], {
+        radius: 8,
+        color: "#d4af37",
+        weight: 3,
+        fillColor: "#000000",
+        fillOpacity: 1
+      }).addTo(map);
+
+      map.setView([lat, lon], 8);
+
+      let bestChapter = null;
+      let bestDistance = Infinity;
+      let bestIndex = -1;
+
+      CHAPTERS.forEach((chapter, idx) => {
+        if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
+          return;
+        const d = haversineDistance(lat, lon, chapter.lat, chapter.lon);
+        if (d < bestDistance) {
+          bestDistance = d;
+          bestChapter = chapter;
+          bestIndex = idx;
+        }
+      });
+
+      const label = "Ta localisation";
+
+      if (bestChapter) {
+        const outOfRange = bestDistance > MAX_DISTANCE_KM;
+        selectedChapterIndex = bestIndex;
+        refreshDepartmentStyles();
+
+        let travelMinutes = null;
+        if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
+          travelMinutes = await getTravelTimeMinutes(
+            bestChapter.lat,
+            bestChapter.lon,
+            lat,
+            lon
+          );
+        }
+
+        if (outOfRange) {
+          updateResultCard(bestChapter, label, "far", bestDistance, travelMinutes);
+        } else {
+          updateResultCard(bestChapter, label, false, bestDistance, travelMinutes);
+        }
+      } else {
+        updateResultCard(null, label, true, null, null);
+      }
+    },
+    (err) => {
+      console.warn("Erreur de géolocalisation :", err);
+      alert("Impossible de récupérer ta position. Vérifie les autorisations de localisation.");
+    }
+  );
+}
+
+//----------------------------------------
 // EVENTS
 //----------------------------------------
 
@@ -551,6 +599,8 @@ document.getElementById("search-btn").addEventListener("click", searchCity);
 document.getElementById("city-search").addEventListener("keyup", (e) => {
   if (e.key === "Enter") searchCity();
 });
+
+document.getElementById("locate-btn").addEventListener("click", locateMe);
 
 //----------------------------------------
 // CHARGEMENT GLOBAL
