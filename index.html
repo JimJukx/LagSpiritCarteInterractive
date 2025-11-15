@@ -1,1 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lag Spirit – Aide Harcèlement & Carte des Chapitres</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Ton CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
+    </div>
+    <div>
+      <h1>Lag Spirit – Carte des Chapitres</h1>
+      <div class="subtitle">Soutiens aux victimes de harcèlement scolaire</div>
+    </div>
+  </div>
+
+  <div class="search-area">
+    <input
+      id="city-search"
+      type="text"
+      placeholder="Tape ta ville (ex : Lyon, Brest...)"
+    />
+    <button id="search-btn">Trouve le chapitre le plus proche</button>
+  </div>
+</header>
+
+<main>
+  <div id="map"></div>
+
+  <aside class="sidebar">
+    <h2>Besoin d’aide&nbsp;?</h2>
+    <p class="info-text">
+      Entre ta ville ou clique sur une zone de la carte.
+      Si la distance est trop importante, il peut être difficile pour un chapitre
+      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
+      et t’apporter des conseils.
+    </p>
+
+    <div id="result-card" class="chapter-card">
+      <div class="chapter-tag">Chapitre sélectionné</div>
+      <h3>Aucun chapitre affiché</h3>
+      <p>
+        Entre une ville ou clique sur une zone de la carte pour afficher
+        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
+      </p>
+    </div>
+
+    <div class="chapters-list-wrapper">
+      <div class="chapters-list-title">Chapitres Lag Spirit</div>
+      <div id="chapters-list" class="chapters-list"></div>
+    </div>
+
+    <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
+    <div class="motto-logo">
+      <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
+    </div>
+  </aside>
+</main>
+
+<!-- JS -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
