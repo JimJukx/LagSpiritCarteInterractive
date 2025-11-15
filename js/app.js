@@ -7,6 +7,7 @@ const DEPARTMENTS_GEOJSON_URL =
 
 const MAX_DISTANCE_KM = 150;
 
+// URL du worker utilisé pour obtenir le temps de trajet
 const ORS_WORKER_URL = "https://lagspirit-ors.jimmy-cattiau.workers.dev";
 
 let CHAPTERS = [];
@@ -121,7 +122,7 @@ async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
 }
 
 //----------------------------------------
-// INIT CHAPTERS
+// INIT CHAPTERS (géocodage)
 //----------------------------------------
 
 async function initChapters() {
@@ -153,12 +154,14 @@ async function initChapters() {
 }
 
 //----------------------------------------
-// DÉPARTEMENTS
+// DÉPARTEMENTS (zones de couverture)
 //----------------------------------------
 
 function refreshDepartmentStyles() {
-  departmentLayers.forEach(({ layer, chapterIndex, color, distance }) => {
-    if (chapterIndex === -1 || distance > MAX_DISTANCE_KM) {
+  departmentLayers.forEach((dept) => {
+    const { layer, responsibleChapters, primaryChapterIndex } = dept;
+
+    if (!responsibleChapters || responsibleChapters.length === 0) {
       layer.setStyle({
         color: "#555555",
         weight: 1,
@@ -168,29 +171,67 @@ function refreshDepartmentStyles() {
       return;
     }
 
-    if (selectedChapterIndex === null) {
-      layer.setStyle({
-        color: color,
-        weight: 1.5,
-        fillColor: color,
-        fillOpacity: 0.25
-      });
-    } else if (chapterIndex === selectedChapterIndex) {
-      layer.setStyle({
-        color: color,
-        weight: 3,
-        fillColor: color,
-        fillOpacity: 0.45
-      });
+    if (responsibleChapters.length === 1) {
+      const idx = responsibleChapters[0];
+      const color = COLORS[idx % COLORS.length];
+
+      if (selectedChapterIndex === null) {
+        layer.setStyle({
+          color: color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.25
+        });
+      } else if (idx === selectedChapterIndex) {
+        layer.setStyle({
+          color: color,
+          weight: 3,
+          fillColor: color,
+          fillOpacity: 0.45
+        });
+      } else {
+        layer.setStyle({
+          color: color,
+          weight: 1,
+          fillColor: color,
+          fillOpacity: 0.12
+        });
+      }
     } else {
-      layer.setStyle({
-        color: color,
-        weight: 1,
-        fillColor: color,
-        fillOpacity: 0.12
-      });
+      // zone partagée (bicolore) → pour l’instant, on utilise la couleur du chapitre principal
+      const idx = primaryChapterIndex;
+      const color = COLORS[idx % COLORS.length];
+
+      if (selectedChapterIndex === null || responsibleChapters.includes(selectedChapterIndex)) {
+        layer.setStyle({
+          color: color,
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.35
+        });
+      } else {
+        layer.setStyle({
+          color: color,
+          weight: 1,
+          fillColor: color,
+          fillOpacity: 0.15
+        });
+      }
     }
   });
+}
+
+function getDeptCode(props) {
+  return (
+    (props && (props.code || props.CODE_DEPT || props.CODE_DEPT)) || null
+  );
+}
+
+function getDeptName(props) {
+  return (
+    (props && (props.nom || props.NOM || props.NOM_DEPT || "Département")) ||
+    "Département"
+  );
 }
 
 async function loadDepartments() {
@@ -208,85 +249,95 @@ async function loadDepartments() {
     }),
     onEachFeature: (feature, layer) => {
       const center = layer.getBounds().getCenter();
+      const deptCode = getDeptCode(feature.properties);
+      const deptName = getDeptName(feature.properties);
 
-      let bestChapter = null;
-      let bestDistance = Infinity;
-      let bestIndex = -1;
+      const distancesByChapter = {};
+      let responsibleChapters = [];
+      let primaryChapterIndex = -1;
+      let primaryDistance = Infinity;
 
-      CHAPTERS.forEach((ch, idx) => {
-        if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
-        const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
-        if (d < bestDistance) {
-          bestDistance = d;
-          bestChapter = ch;
-          bestIndex = idx;
+      // 1) Couverture manuelle par départements (coverageMode = departments ou both)
+      if (deptCode) {
+        const manualCandidates = [];
+
+        CHAPTERS.forEach((ch, idx) => {
+          const mode = ch.coverageMode || "distance";
+          const deptList = Array.isArray(ch.departments) ? ch.departments : [];
+          if ((mode === "departments" || mode === "both") && deptList.includes(deptCode)) {
+            if (typeof ch.lat === "number" && typeof ch.lon === "number") {
+              const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
+              manualCandidates.push({ idx, distance: d });
+            } else {
+              manualCandidates.push({ idx, distance: Infinity });
+            }
+          }
+        });
+
+        if (manualCandidates.length > 0) {
+          manualCandidates.forEach((c) => {
+            distancesByChapter[c.idx] = c.distance;
+          });
+          primaryChapterIndex = manualCandidates.reduce((bestIdx, c) => {
+            if (bestIdx === -1) return c.idx;
+            return distancesByChapter[c.idx] < distancesByChapter[bestIdx]
+              ? c.idx
+              : bestIdx;
+          }, -1);
+          primaryDistance =
+            primaryChapterIndex !== -1 ? distancesByChapter[primaryChapterIndex] : Infinity;
+          responsibleChapters = manualCandidates.map((c) => c.idx);
         }
-      });
+      }
 
-      const deptName =
-        feature.properties &&
-        (feature.properties.nom || feature.properties.NOM || "Département");
+      // 2) Si aucun chapitre manuel, on passe en mode automatique (coverageMode = distance ou both)
+      if (responsibleChapters.length === 0) {
+        const autoCandidates = [];
 
-      if (bestChapter && bestIndex >= 0 && bestDistance <= MAX_DISTANCE_KM) {
-        const color = COLORS[bestIndex % COLORS.length];
+        CHAPTERS.forEach((ch, idx) => {
+          const mode = ch.coverageMode || "distance";
+          if (mode !== "distance" && mode !== "both") return;
+          if (typeof ch.lat !== "number" || typeof ch.lon !== "number") return;
 
-        departmentLayers.push({
-          layer,
-          chapterIndex: bestIndex,
-          color,
-          distance: bestDistance
-        });
+          const d = haversineDistance(center.lat, center.lng, ch.lat, ch.lon);
+          const chapterMax =
+            typeof ch.maxDistanceKm === "number" ? ch.maxDistanceKm : MAX_DISTANCE_KM;
 
-        const popupContent =
-          `<b>${deptName}</b><br>` +
-          `Chapitre : ${bestChapter.name}<br>` +
-          `Ville du chapitre : ${bestChapter.city}<br>` +
-          `<small>Vous pouvez prendre contact avec ce chapitre afin d’obtenir des informations ou des conseils.</small>`;
-
-        layer.bindPopup(popupContent);
-
-        layer.on("click", () => {
-          selectedChapterIndex = bestIndex;
-          refreshDepartmentStyles();
-
-          // on utilise le MÊME marqueur que pour la recherche / géoloc
-          if (searchMarker) {
-            map.removeLayer(searchMarker);
+          if (d <= chapterMax && d <= MAX_DISTANCE_KM) {
+            autoCandidates.push({ idx, distance: d });
           }
-          searchMarker = L.circleMarker([center.lat, center.lng], {
-            radius: 8,
-            color: "#d4af37",
-            weight: 3,
-            fillColor: "#000000",
-            fillOpacity: 1
-          }).addTo(map);
-
-          if (searchHalo) {
-            map.removeLayer(searchHalo);
-          }
-          searchHalo = L.circle([center.lat, center.lng], {
-            radius: 20000,
-            color: "#d4af37",
-            weight: 1,
-            fillOpacity: 0.15,
-            fillColor: "#d4af37"
-          }).addTo(map);
-
-          map.setView([center.lat, center.lng], 7);
-
-          updateResultCard(bestChapter, deptName, false, bestDistance, null);
-        });
-      } else {
-        const color = "#555555";
-        departmentLayers.push({
-          layer,
-          chapterIndex: -1,
-          color,
-          distance: Infinity
         });
 
+        if (autoCandidates.length > 0) {
+          autoCandidates.forEach((c) => {
+            distancesByChapter[c.idx] = c.distance;
+          });
+
+          const best = autoCandidates.reduce((a, b) =>
+            a.distance < b.distance ? a : b
+          );
+          primaryChapterIndex = best.idx;
+          primaryDistance = best.distance;
+          responsibleChapters = [best.idx];
+        }
+      }
+
+      const deptInfo = {
+        layer,
+        deptCode,
+        deptName,
+        center,
+        responsibleChapters,
+        primaryChapterIndex,
+        distancesByChapter
+      };
+
+      departmentLayers.push(deptInfo);
+
+      // STYLE / POPUP
+      if (!responsibleChapters || responsibleChapters.length === 0) {
         layer.setStyle({
-          color: color,
+          color: "#555555",
           weight: 1,
           fillColor: "#202020",
           fillOpacity: 0.15
@@ -294,10 +345,97 @@ async function loadDepartments() {
 
         layer.bindPopup(
           `<b>${deptName}</b><br>` +
-            `Aucun chapitre Lag Spirit à proximité.<br>` +
-            `<small>Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...). La liste complète est indiquée dans la colonne d’aide.</small>`
+            `Aucun chapitre Lag Spirit ne couvre officiellement ce département.<br>` +
+            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche ou utiliser les numéros d’urgence en cas de besoin.</small>`
+        );
+      } else if (responsibleChapters.length === 1) {
+        const idx = primaryChapterIndex;
+        const ch = CHAPTERS[idx];
+        const color = COLORS[idx % COLORS.length];
+
+        layer.setStyle({
+          color: color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.25
+        });
+
+        layer.bindPopup(
+          `<b>${deptName}</b><br>` +
+            `Chapitre : ${ch.name}<br>` +
+            `Ville du chapitre : ${ch.city}<br>` +
+            `<small>Ce chapitre est référent pour ce département. Vous pouvez le contacter pour obtenir des informations ou des conseils.</small>`
+        );
+      } else {
+        // zone partagée (plusieurs chapitres)
+        const primaryIdx = primaryChapterIndex;
+        const primaryChapter = CHAPTERS[primaryIdx];
+        const color = COLORS[primaryIdx % COLORS.length];
+
+        layer.setStyle({
+          color: color,
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.35
+        });
+
+        const others = responsibleChapters
+          .filter((idx) => idx !== primaryIdx)
+          .map((idx) => CHAPTERS[idx].name)
+          .join(", ");
+
+        layer.bindPopup(
+          `<b>${deptName}</b><br>` +
+            `Chapitre principal : ${primaryChapter.name}<br>` +
+            (others
+              ? `Autre(s) chapitre(s) référent(s) : ${others}<br>`
+              : "") +
+            `<small>Ce département est couvert par plusieurs chapitres Lag Spirit.</small>`
         );
       }
+
+      // Clic sur un département → affiche le/les chapitres référents de la zone
+      layer.on("click", () => {
+        if (!responsibleChapters || responsibleChapters.length === 0) {
+          selectedChapterIndex = null;
+          refreshDepartmentStyles();
+          setSearchMarker(center.lat, center.lng);
+          updateResultCard(null, deptName, true, null, null, []);
+          return;
+        }
+
+        const primaryIdx = primaryChapterIndex;
+        const primaryChapter = CHAPTERS[primaryIdx];
+        const primaryDistance =
+          typeof distancesByChapter[primaryIdx] === "number"
+            ? distancesByChapter[primaryIdx]
+            : null;
+
+        const extra = responsibleChapters
+          .filter((idx) => idx !== primaryIdx)
+          .map((idx) => ({
+            chapter: CHAPTERS[idx],
+            distanceKm:
+              typeof distancesByChapter[idx] === "number"
+                ? distancesByChapter[idx]
+                : null,
+            travelMinutes: null
+          }));
+
+        selectedChapterIndex = primaryIdx;
+        refreshDepartmentStyles();
+        setSearchMarker(center.lat, center.lng);
+        map.setView([center.lat, center.lng], 7);
+
+        updateResultCard(
+          primaryChapter,
+          deptName,
+          false,
+          primaryDistance,
+          null,
+          extra
+        );
+      });
     }
   }).addTo(map);
 
@@ -309,11 +447,19 @@ async function loadDepartments() {
 //----------------------------------------
 // status :
 //  false -> chapitre trouvé dans la zone
-//  "far" -> chapitre trouvé mais hors zone
+//  "far" -> chapitre trouvé mais loin (> MAX_DISTANCE_KM)
 //  true  -> aucun chapitre / erreur
 
-function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinutes) {
+function updateResultCard(
+  chapter,
+  searchedCity,
+  status,
+  distanceKm,
+  travelMinutes,
+  extraChapters
+) {
   const card = document.getElementById("result-card");
+  extraChapters = Array.isArray(extraChapters) ? extraChapters : [];
 
   if (!chapter && status) {
     card.innerHTML = `
@@ -396,6 +542,39 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
     ? `<div class="help-highlight">${chapter.helpInfo}</div>`
     : "";
 
+  let extraBlock = "";
+  if (extraChapters.length > 0) {
+    const items = extraChapters
+      .map((ex) => {
+        let txt = `<strong>${ex.chapter.name}</strong>`;
+        const parts = [];
+        if (ex.distanceKm) {
+          parts.push(`~${ex.distanceKm.toFixed(0)} km`);
+        }
+        if (ex.travelMinutes) {
+          const h = Math.floor(ex.travelMinutes / 60);
+          const m = Math.round(ex.travelMinutes % 60);
+          const label =
+            h > 0 ? `${h}h${m.toString().padStart(2, "0")}` : `${m} min`;
+          parts.push(`~${label}`);
+        }
+        if (parts.length > 0) {
+          txt += ` (${parts.join(" – ")})`;
+        }
+        return `<li>${txt}</li>`;
+      })
+      .join("");
+
+    extraBlock = `
+      <div class="help-highlight">
+        <strong>Autre(s) chapitre(s) référent(s) sur cette zone :</strong>
+        <ul style="padding-left:1.2rem;margin:0.2rem 0;">
+          ${items}
+        </ul>
+      </div>
+    `;
+  }
+
   if (status === "far" && distanceKm) {
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
@@ -418,6 +597,7 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
       ${instagramLink}
 
       ${helpInfo}
+      ${extraBlock}
     `;
     return;
   }
@@ -436,6 +616,7 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
     ${instagramLink}
 
     ${helpInfo}
+    ${extraBlock}
   `;
 }
 
@@ -467,8 +648,9 @@ function renderChaptersList() {
 
       if (typeof ch.lat === "number" && typeof ch.lon === "number") {
         map.setView([ch.lat, ch.lon], 7);
+        setSearchMarker(ch.lat, ch.lon);
       }
-      updateResultCard(ch, ch.city, false, null, null);
+      updateResultCard(ch, ch.city, false, null, null, []);
     });
 
     container.appendChild(btn);
@@ -476,7 +658,7 @@ function renderChaptersList() {
 }
 
 //----------------------------------------
-// UTIL : créer/mettre à jour le marqueur noir/or + halo
+// UTIL : MARQUEUR noir/or + halo
 //----------------------------------------
 
 function setSearchMarker(lat, lon) {
@@ -503,181 +685,4 @@ function setSearchMarker(lat, lon) {
   }).addTo(map);
 }
 
-//----------------------------------------
-// RECHERCHE PAR VILLE
-//----------------------------------------
-
-async function searchCity() {
-  const input = document.getElementById("city-search");
-  const query = input.value.trim();
-  if (!query) return;
-
-  const coords = await geocodeCity(query);
-  if (!coords) {
-    updateResultCard(null, query, true, null, null);
-    return;
-  }
-
-  setSearchMarker(coords.lat, coords.lon);
-  map.setView([coords.lat, coords.lon], 7);
-
-  let bestChapter = null;
-  let bestDistance = Infinity;
-  let bestIndex = -1;
-
-  CHAPTERS.forEach((chapter, idx) => {
-    if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
-      return;
-    const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
-    if (d < bestDistance) {
-      bestDistance = d;
-      bestChapter = chapter;
-      bestIndex = idx;
-    }
-  });
-
-  if (bestChapter) {
-    const outOfRange = bestDistance > MAX_DISTANCE_KM;
-    selectedChapterIndex = bestIndex;
-    refreshDepartmentStyles();
-
-    let travelMinutes = null;
-    if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
-      travelMinutes = await getTravelTimeMinutes(
-        bestChapter.lat,
-        bestChapter.lon,
-        coords.lat,
-        coords.lon
-      );
-    }
-
-    if (outOfRange) {
-      updateResultCard(bestChapter, query, "far", bestDistance, travelMinutes);
-    } else {
-      updateResultCard(bestChapter, query, false, bestDistance, travelMinutes);
-    }
-  } else {
-    updateResultCard(null, query, true, null, null);
-  }
-}
-
-//----------------------------------------
-// BOUTON "ME LOCALISER"
-//----------------------------------------
-
-function locateMe() {
-  if (!navigator.geolocation) {
-    alert("La géolocalisation n’est pas supportée sur cet appareil.");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      setSearchMarker(lat, lon);
-      map.setView([lat, lon], 8);
-
-      let bestChapter = null;
-      let bestDistance = Infinity;
-      let bestIndex = -1;
-
-      CHAPTERS.forEach((chapter, idx) => {
-        if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
-          return;
-        const d = haversineDistance(lat, lon, chapter.lat, chapter.lon);
-        if (d < bestDistance) {
-          bestDistance = d;
-          bestChapter = chapter;
-          bestIndex = idx;
-        }
-      });
-
-      const label = "Ta localisation";
-
-      if (bestChapter) {
-        const outOfRange = bestDistance > MAX_DISTANCE_KM;
-        selectedChapterIndex = bestIndex;
-        refreshDepartmentStyles();
-
-        let travelMinutes = null;
-        if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
-          travelMinutes = await getTravelTimeMinutes(
-            bestChapter.lat,
-            bestChapter.lon,
-            lat,
-            lon
-          );
-        }
-
-        if (outOfRange) {
-          updateResultCard(bestChapter, label, "far", bestDistance, travelMinutes);
-        } else {
-          updateResultCard(bestChapter, label, false, bestDistance, travelMinutes);
-        }
-      } else {
-        updateResultCard(null, label, true, null, null);
-      }
-    },
-    (err) => {
-      console.warn("Erreur de géolocalisation :", err);
-      alert("Impossible de récupérer ta position. Vérifie les autorisations de localisation.");
-    }
-  );
-}
-
-//----------------------------------------
-// EVENTS
-//----------------------------------------
-
-document.getElementById("search-btn").addEventListener("click", searchCity);
-document.getElementById("city-search").addEventListener("keyup", (e) => {
-  if (e.key === "Enter") searchCity();
-});
-
-document.getElementById("locate-btn").addEventListener("click", locateMe);
-
-// toggle liste chapitres
-const chaptersListEl = document.getElementById("chapters-list");
-const chaptersToggleBtn = document.getElementById("toggle-chapters");
-if (chaptersListEl && chaptersToggleBtn) {
-  chaptersToggleBtn.addEventListener("click", () => {
-    const isCollapsed = chaptersListEl.classList.toggle("collapsed");
-    chaptersToggleBtn.textContent = isCollapsed ? "Afficher" : "Masquer";
-    chaptersToggleBtn.setAttribute("aria-expanded", !isCollapsed);
-  });
-}
-
-// bouton numéros d'urgence
-const emergencyBtn = document.getElementById("emergency-toggle");
-const emergencyBox = document.getElementById("emergency-numbers");
-if (emergencyBtn && emergencyBox) {
-  emergencyBtn.addEventListener("click", () => {
-    const isVisible = emergencyBox.style.display === "block";
-    emergencyBox.style.display = isVisible ? "none" : "block";
-    emergencyBtn.textContent = isVisible
-      ? "Afficher les numéros d’urgence"
-      : "Masquer les numéros d’urgence";
-  });
-}
-
-//----------------------------------------
-// CHARGEMENT GLOBAL
-//----------------------------------------
-
-async function loadChapters() {
-  try {
-    const res = await fetch("chapters.json");
-    CHAPTERS = await res.json();
-
-    await initChapters();
-    renderChaptersList();
-    await loadDepartments();
-  } catch (e) {
-    console.error("Erreur de chargement de chapters.json", e);
-    alert("Impossible de charger la liste des chapitres (chapters.json).");
-  }
-}
-
-loadChapters();
+//-------------------------------------
