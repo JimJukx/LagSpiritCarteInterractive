@@ -40,6 +40,11 @@
   </div>
 </header>
 
+<!-- Bandeau d'accueil -->
+<div class="welcome-banner">
+  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+</div>
+
 <main>
   <div id="map"></div>
 
@@ -62,7 +67,12 @@
     </div>
 
     <div class="chapters-list-wrapper">
-      <div class="chapters-list-title">Chapitres Lag Spirit</div>
+      <div class="chapters-list-header">
+        <div class="chapters-list-title">Chapitres Lag Spirit</div>
+        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="true">
+          Masquer
+        </button>
+      </div>
       <div id="chapters-list" class="chapters-list"></div>
     </div>
 
@@ -80,17 +90,21 @@
       </p>
       <p>
         En cas de danger, de menace ou de situation nécessitant une intervention
-        officielle, contactez immédiatement les numéros d’urgence compétents&nbsp;:
+        officielle, utilisez les <strong>numéros d’urgence</strong>.
       </p>
-      <p class="legal-numbers">
-        <strong>17</strong> – Police / Gendarmerie<br />
-        <strong>15</strong> – SAMU (urgence médicale)<br />
-        <strong>18</strong> – Pompiers<br />
-        <strong>112</strong> – Numéro d’urgence européen<br />
-        <strong>3020</strong> – Harcèlement scolaire<br />
-        <strong>3018</strong> – Cyberharcèlement et violences numériques<br />
-        <strong>119</strong> – Enfance en danger
-      </p>
+      <button id="emergency-toggle" class="emergency-btn">
+        Afficher les numéros d’urgence
+      </button>
+      <div id="emergency-numbers" class="emergency-numbers">
+        <p class="legal-numbers">
+          <strong>17</strong> – Police / Gendarmerie<br />
+          <strong>15</strong> – SAMU (urgence médicale)<br />
+          <strong>18</strong> – Pompiers<br />
+          <strong>112</strong> – Numéro d’urgence européen<br />
+          <strong>119</strong> – Enfance en danger<br />
+          <strong>3018</strong> – Harcèlement et cyberharcèlement<br />
+        </p>
+      </div>
     </div>
   </aside>
 </main>
