@@ -1,1 +1,93 @@
-
+[
+  {
+    "id": "original",
+    "name": "Original",
+    "city": "Ormesson-sur-Marne",
+    "coverageMode": "distance",
+    "maxDistanceKm": 150,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/LSMC.Original",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "ariovistos",
+    "name": "Ariovistos",
+    "city": "Strasbourg",
+    "coverageMode": "departments",
+    "maxDistanceKm": 150,
+    "departments": ["67", "68"],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/Lag-Spirit-MC-Ariovistos-103153038723640",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "ho-norr",
+    "name": "Ho-Norr",
+    "city": "Cambrai",
+    "coverageMode": "distance",
+    "maxDistanceKm": 150,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/LagSpiritMCHonorr",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "city-of-pope",
+    "name": "City of Pope",
+    "city": "Carpentras",
+    "coverageMode": "distance",
+    "maxDistanceKm": 150,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/profile.php?id=100057680550132",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "svadilfary",
+    "name": "Svadilfary",
+    "city": "Nogent-sur-Oise",
+    "coverageMode": "distance",
+    "maxDistanceKm": 150,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/profile.php?id=61566792414717",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "normaneen",
+    "name": "Normaneen",
+    "city": "Caen",
+    "coverageMode": "distance",
+    "maxDistanceKm": 80,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/lag.spirit.mc.noormannen",
+    "instagram": "",
+    "helpInfo": ""
+  },
+  {
+    "id": "solvkysten",
+    "name": "Solvkysten",
+    "city": "Bordeaux",
+    "coverageMode": "distance",
+    "maxDistanceKm": 150,
+    "departments": [],
+    "contactEmail": "",
+    "contactPhone": "",
+    "facebook": "https://www.facebook.com/SOLVKYSTEN",
+    "instagram": "",
+    "helpInfo": ""
+  }
+]
