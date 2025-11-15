@@ -606,7 +606,7 @@
   function updateResultCard(chapter, searchedCity, outOfRange, distanceKm) {
     const card = document.getElementById("result-card");
 
-    // Aucun chapitre du tout (très rare)
+    // Aucun chapitre du tout (géocodage ou données KO)
     if (!chapter && outOfRange) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
@@ -632,7 +632,6 @@
       return;
     }
 
-    // Cas normal : aucune coordonnée / erreur géocodage
     if (!chapter) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
@@ -674,7 +673,7 @@
       ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir le profil</a></p>`
       : "";
 
-    const dist = distanceKm
+    const distBlock = distanceKm
       ? `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km</p>`
       : "";
 
@@ -682,15 +681,15 @@
       ? `<div class="help-highlight">${chapter.helpInfo}</div>`
       : "";
 
-    // Si la recherche est hors zone de couverture (distance > MAX_DISTANCE_KM)
     if (outOfRange && distanceKm) {
+      // hors zone de couverture, mais on affiche quand même le chapitre le plus proche
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
         <h3>${chapter.name}</h3>
 
         <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
         <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
-        ${dist}
+        ${distBlock}
 
         <p>
           Ce chapitre est actuellement le plus proche de la zone recherchée,
@@ -725,7 +724,7 @@
 
       <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
       <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
-      ${dist}
+      ${distBlock}
 
       ${phone}
       ${emailLink}
@@ -754,4 +753,4 @@
         </div>
       `;
 
-      b
+      btn.addEventListener(
