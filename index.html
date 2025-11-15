@@ -365,8 +365,9 @@
     <h2>Besoin d’aide&nbsp;?</h2>
     <p class="info-text">
       Entre ta ville ou clique sur une zone de la carte.
-      Le chapitre le plus proche (dans la limite de 100 km) apparaîtra ici
-      avec ses contacts.
+      Si la distance est trop importante, il peut être difficile pour un chapitre
+      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
+      et t’apporter des conseils.
     </p>
 
     <div id="result-card" class="chapter-card">
@@ -374,7 +375,7 @@
       <h3>Aucun chapitre affiché</h3>
       <p>
         Entre une ville ou clique sur une zone de la carte pour afficher
-        le chapitre le plus proche (si un chapitre existe à moins de 100 km).
+        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
       </p>
     </div>
 
@@ -394,7 +395,7 @@
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  // Limite de couverture : rayon max en km
+  // Limite interne (en km) pour la couverture – non affichée à l'utilisateur
   const MAX_DISTANCE_KM = 150;
 
   let CHAPTERS = [];
@@ -587,7 +588,13 @@
           layer.bindPopup(
             `<b>${deptName}</b><br>` +
             `Aucun chapitre Lag Spirit à proximité.<br>` +
-            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche ou utiliser les numéros d’urgence si nécessaire.</small>`
+            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br>` +
+            `<small><br><strong>Numéros d’urgence :</strong><br>` +
+            `17 – Police / Gendarmerie<br>` +
+            `15 – SAMU (urgence médicale)<br>` +
+            `3020 – Harcèlement scolaire<br>` +
+            `3018 – Cyberharcèlement et violences numériques<br>` +
+            `119 – Enfance en danger</small>`
           );
         }
       }
@@ -596,10 +603,37 @@
     refreshDepartmentStyles();
   }
 
-  function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
+  function updateResultCard(chapter, searchedCity, outOfRange, distanceKm) {
     const card = document.getElementById("result-card");
 
-    if (!chapter || notFound) {
+    // Aucun chapitre du tout (très rare)
+    if (!chapter && outOfRange) {
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>Aucun chapitre à proximité</h3>
+        <p>
+          Aucun chapitre Lag Spirit n’a été identifié à proximité de
+          <strong>${searchedCity}</strong>.
+        </p>
+        <p>
+          Vous pouvez utiliser la recherche en haut de la page pour connaître
+          le chapitre Lag Spirit le plus proche et obtenir des informations
+          ou des conseils.
+        </p>
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
+      return;
+    }
+
+    // Cas normal : aucune coordonnée / erreur géocodage
+    if (!chapter) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
         <h3>Aucun chapitre à proximité</h3>
@@ -648,6 +682,43 @@
       ? `<div class="help-highlight">${chapter.helpInfo}</div>`
       : "";
 
+    // Si la recherche est hors zone de couverture (distance > MAX_DISTANCE_KM)
+    if (outOfRange && distanceKm) {
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>${chapter.name}</h3>
+
+        <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
+        <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
+        ${dist}
+
+        <p>
+          Ce chapitre est actuellement le plus proche de la zone recherchée,
+          mais la distance peut rendre un déplacement difficile.
+          Tu peux néanmoins les contacter pour être écouté(e), obtenir des conseils
+          et être orienté(e).
+        </p>
+
+        ${phone}
+        ${emailLink}
+        ${facebookLink}
+        ${instagramLink}
+
+        ${helpInfo}
+
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
+      return;
+    }
+
+    // Cas normal : chapitre dans la zone de couverture
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
       <h3>${chapter.name}</h3>
@@ -683,77 +754,4 @@
         </div>
       `;
 
-      btn.addEventListener("click", () => {
-        selectedChapterIndex = idx;
-        refreshDepartmentStyles();
-
-        if (typeof ch.lat === "number" && typeof ch.lon === "number") {
-          map.setView([ch.lat, ch.lon], 7);
-        }
-        updateResultCard(ch, ch.city, false, null);
-      });
-
-      container.appendChild(btn);
-    });
-  }
-
-  async function searchCity() {
-    const input = document.getElementById("city-search");
-    const query = input.value.trim();
-    if (!query) return;
-
-    const coords = await geocodeCity(query);
-    if (!coords) {
-      updateResultCard(null, query, true);
-      return;
-    }
-
-    let bestChapter = null;
-    let bestDistance = Infinity;
-    let bestIndex = -1;
-
-    CHAPTERS.forEach((chapter, idx) => {
-      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
-      const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
-      if (d < bestDistance) {
-        bestDistance = d;
-        bestChapter = chapter;
-        bestIndex = idx;
-      }
-    });
-
-    map.setView([coords.lat, coords.lon], 7);
-
-    if (bestChapter && bestDistance <= MAX_DISTANCE_KM) {
-      selectedChapterIndex = bestIndex;
-      refreshDepartmentStyles();
-      updateResultCard(bestChapter, query, false, bestDistance);
-    } else {
-      updateResultCard(null, query, true);
-    }
-  }
-
-  document.getElementById("search-btn").addEventListener("click", searchCity);
-  document.getElementById("city-search").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") searchCity();
-  });
-
-  async function loadChapters() {
-    try {
-      const res = await fetch("chapters.json");
-      CHAPTERS = await res.json();
-
-      await initChapters();
-      renderChaptersList();
-      await loadDepartments();
-    } catch (e) {
-      console.error("Erreur de chargement de chapters.json", e);
-      alert("Impossible de charger la liste des chapitres (chapters.json).");
-    }
-  }
-
-  loadChapters();
-</script>
-
-</body>
-</html>
+      b
