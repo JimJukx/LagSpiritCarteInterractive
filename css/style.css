@@ -1,3 +1,7 @@
+/* =========================================
+   PALETTE & VARIABLES LAG SPIRIT
+========================================= */
+
 :root {
   --lag-black: #000000;
   --lag-white: #ffffff;
@@ -5,8 +9,16 @@
   --lag-gold-soft: #e7c865;
 }
 
+/* =========================================
+   RESET & BASE
+========================================= */
+
 * {
   box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
 }
 
 body {
@@ -14,12 +26,14 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   background: #111;
   color: var(--lag-white);
 }
 
-/* HEADER */
+/* =========================================
+   HEADER
+========================================= */
 
 header {
   padding: 0.4rem 0.9rem;
@@ -55,7 +69,6 @@ header {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  display: block;
 }
 
 header h1 {
@@ -70,7 +83,22 @@ header .subtitle {
   opacity: 0.9;
 }
 
-/* SEARCH BAR */
+/* =========================================
+   WELCOME BANNER
+========================================= */
+
+.welcome-banner {
+  padding: 0.4rem 0.9rem;
+  background: #181818;
+  border-bottom: 1px solid #333;
+  font-size: 0.8rem;
+  color: #f0f0f0;
+  text-align: left;
+}
+
+/* =========================================
+   SEARCH AREA
+========================================= */
 
 .search-area {
   margin-left: auto;
@@ -113,7 +141,9 @@ header .subtitle {
   color: var(--lag-gold);
 }
 
-/* LAYOUT */
+/* =========================================
+   PAGE LAYOUT
+========================================= */
 
 main {
   display: flex;
@@ -124,16 +154,23 @@ main {
 #map {
   flex: 2;
   height: 100%;
+  min-height: 300px;
   position: relative;
 }
 
-/* SIDEBAR */
+.leaflet-container {
+  background: #101010;
+}
+
+/* =========================================
+   SIDEBAR
+========================================= */
 
 .sidebar {
   flex: 1;
   max-width: 380px;
   border-left: 1px solid #333;
-  padding: 0.75rem 0.9rem;
+  padding: 0.75rem 0.9rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -152,7 +189,9 @@ main {
   color: #d0d0d0;
 }
 
-/* RESULT CARD */
+/* =========================================
+   RESULT CARD
+========================================= */
 
 .chapter-card {
   margin-top: 0.5rem;
@@ -169,6 +208,21 @@ main {
 .chapter-card h3 {
   margin: 0.1rem 0 0.25rem 0;
   font-size: 1rem;
+}
+
+.chapter-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lag-black);
+  color: var(--lag-gold);
+  border-radius: 999px;
+  padding: 0.18rem 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 auto 0.4rem auto;
+  border: 1px solid var(--lag-gold);
 }
 
 .chapter-card p {
@@ -190,23 +244,6 @@ main {
   text-decoration: underline;
 }
 
-.chapter-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--lag-black);
-  color: var(--lag-gold);
-  border-radius: 999px;
-  padding: 0.18rem 0.75rem;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 auto 0.4rem auto;
-  border: 1px solid var(--lag-gold);
-}
-
-/* AIDE / URGENCE */
-
 .help-highlight {
   margin-top: 0.5rem;
   padding: 0.5rem 0.6rem;
@@ -216,7 +253,9 @@ main {
   font-size: 0.8rem;
 }
 
-/* LISTE DES CHAPITRES */
+/* =========================================
+   LISTE DES CHAPITRES (COMPACTE + TOGGLE)
+========================================= */
 
 .chapters-list-wrapper {
   margin-top: 0.75rem;
@@ -224,20 +263,47 @@ main {
   border-top: 1px solid #333;
 }
 
+.chapters-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
 .chapters-list-title {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #cccccc;
-  margin-bottom: 0.25rem;
+}
+
+.chapters-toggle-btn {
+  border-radius: 999px;
+  border: 1px solid #444;
+  background: #181818;
+  color: #ddd;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.55rem;
+  cursor: pointer;
+}
+
+.chapters-toggle-btn:hover {
+  border-color: var(--lag-gold-soft);
+  color: var(--lag-gold-soft);
+  background: #202020;
 }
 
 .chapters-list {
-  max-height: 180px;
+  max-height: 120px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+}
+
+.chapters-list.collapsed {
+  display: none;
 }
 
 .chapter-list-item {
@@ -245,12 +311,12 @@ main {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.4rem;
+  gap: 0.35rem;
   background: #181818;
   border: 1px solid #333;
   border-radius: 999px;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
   color: #eee;
   cursor: pointer;
 }
@@ -260,9 +326,16 @@ main {
   background: #202020;
 }
 
+.chapter-list-main {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
 .chapter-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -271,57 +344,85 @@ main {
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  max-width: 220px;
+  max-width: 190px;
 }
 
-/* LEAFLET BACKGROUND */
-
-.leaflet-container {
-  background: #101010;
-}
-
-/* MOTTO + LOGO */
+/* =========================================
+   DEVISE + BLOC INFO
+========================================= */
 
 .motto {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   text-align: center;
-  margin-top: 1rem;
+  margin-top: 0.9rem;
   color: var(--lag-gold-soft);
   font-weight: 600;
 }
 
-.motto-logo {
-  margin-top: 0.3rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Bloc légal allégé, plus petit */
+.legal-info {
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.6rem;
+  background: #181818;
+  border: 1px solid #333;
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 
-.motto-logo img {
-  max-width: 200px;
-  width: 50%;
-  min-width: 100px;
-  height: auto;
-  display: block;
-  margin: 0.4rem auto 0 auto;
+.legal-info p {
+  margin: 0.2rem 0;
 }
 
-/* RESPONSIVE */
+.legal-info strong {
+  color: var(--lag-gold-soft);
+}
+
+/* bouton numéros d'urgence */
+.emergency-btn {
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--lag-gold-soft);
+  background: #111;
+  color: var(--lag-gold-soft);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.emergency-btn:hover {
+  background: var(--lag-gold-soft);
+  color: #111;
+}
+
+/* bloc des numéros caché/affiché */
+.emergency-numbers {
+  display: none;
+  margin-top: 0.35rem;
+}
+
+.legal-numbers {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+}
+
+/* =========================================
+   MOBILE
+========================================= */
 
 @media (max-width: 800px) {
   main {
     flex-direction: column;
   }
 
+  #map {
+    height: 50vh;
+  }
+
   .sidebar {
     max-width: none;
     border-left: none;
     border-top: 1px solid #333;
-    height: 45vh;
-  }
-
-  #map {
-    height: 55vh;
   }
 
   header {
@@ -333,4 +434,8 @@ main {
     margin-left: 0;
     justify-content: flex-start;
   }
-    }
+
+  .chapters-list {
+    max-height: 100px;
+  }
+}
