@@ -685,4 +685,276 @@ function setSearchMarker(lat, lon) {
   }).addTo(map);
 }
 
-//-------------------------------------
+//----------------------------------------
+// TROUVER LE DÉPARTEMENT D'UN POINT
+//----------------------------------------
+
+function findDepartmentForPoint(lat, lon) {
+  const pt = L.latLng(lat, lon);
+  for (const dept of departmentLayers) {
+    if (dept.layer.getBounds().contains(pt)) {
+      return dept;
+    }
+  }
+  return null;
+}
+
+//----------------------------------------
+// LOGIQUE GLOBAL : MEILLEUR CHAPITRE PAR TEMPS (fallback)
+//----------------------------------------
+
+async function findBestChapter(lat, lon) {
+  const candidates = [];
+
+  CHAPTERS.forEach((chapter, idx) => {
+    if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number")
+      return;
+    const d = haversineDistance(lat, lon, chapter.lat, chapter.lon);
+    candidates.push({ chapter, idx, distance: d });
+  });
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => a.distance - b.distance);
+
+  const MAX_CANDIDATES = Math.min(5, candidates.length);
+  const nearest = candidates.slice(0, MAX_CANDIDATES);
+
+  let bestByTime = null;
+
+  for (const c of nearest) {
+    const minutes = await getTravelTimeMinutes(
+      lat,
+      lon,
+      c.chapter.lat,
+      c.chapter.lon
+    );
+    if (minutes != null) {
+      if (!bestByTime || minutes < bestByTime.travelMinutes) {
+        bestByTime = {
+          chapter: c.chapter,
+          idx: c.idx,
+          distance: c.distance,
+          travelMinutes: minutes
+        };
+      }
+    }
+  }
+
+  if (bestByTime) {
+    return bestByTime;
+  }
+
+  const bestDistanceOnly = candidates[0];
+  return {
+    chapter: bestDistanceOnly.chapter,
+    idx: bestDistanceOnly.idx,
+    distance: bestDistanceOnly.distance,
+    travelMinutes: null
+  };
+}
+
+//----------------------------------------
+// RECHERCHE PAR VILLE
+//----------------------------------------
+
+async function handleZoneSearchForDept(dept, lat, lon, label) {
+  const indices = dept.responsibleChapters || [];
+  if (indices.length === 0) {
+    return handleGlobalSearch(lat, lon, label);
+  }
+
+  const infos = [];
+  for (const idx of indices) {
+    const ch = CHAPTERS[idx];
+    if (typeof ch.lat !== "number" || typeof ch.lon !== "number") continue;
+    const distance = haversineDistance(lat, lon, ch.lat, ch.lon);
+    const travelMinutes = await getTravelTimeMinutes(lat, lon, ch.lat, ch.lon);
+    infos.push({ chapter: ch, idx, distanceKm: distance, travelMinutes });
+  }
+
+  if (infos.length === 0) {
+    return handleGlobalSearch(lat, lon, label);
+  }
+
+  // choisir en priorité sur le temps, sinon sur la distance
+  let best = null;
+  for (const info of infos) {
+    if (info.travelMinutes != null) {
+      if (!best || best.travelMinutes == null || info.travelMinutes < best.travelMinutes) {
+        best = info;
+      }
+    }
+  }
+  if (!best) {
+    best = infos.reduce((a, b) =>
+      a.distanceKm < b.distanceKm ? a : b
+    );
+  }
+
+  const extras = infos
+    .filter((info) => info.idx !== best.idx)
+    .map((info) => ({
+      chapter: info.chapter,
+      distanceKm: info.distanceKm,
+      travelMinutes: info.travelMinutes
+    }));
+
+  selectedChapterIndex = best.idx;
+  refreshDepartmentStyles();
+
+  const status = best.distanceKm > MAX_DISTANCE_KM ? "far" : false;
+  updateResultCard(
+    best.chapter,
+    label,
+    status,
+    best.distanceKm,
+    best.travelMinutes,
+    extras
+  );
+}
+
+async function handleGlobalSearch(lat, lon, label) {
+  const best = await findBestChapter(lat, lon);
+  if (!best) {
+    updateResultCard(null, label, true, null, null, []);
+    return;
+  }
+  const status = best.distance > MAX_DISTANCE_KM ? "far" : false;
+  selectedChapterIndex = best.idx;
+  refreshDepartmentStyles();
+
+  updateResultCard(
+    best.chapter,
+    label,
+    status,
+    best.distance,
+    best.travelMinutes,
+    []
+  );
+}
+
+async function searchCity() {
+  const input = document.getElementById("city-search");
+  const query = input.value.trim();
+  if (!query) return;
+
+  const coords = await geocodeCity(query);
+  if (!coords) {
+    updateResultCard(null, query, true, null, null, []);
+    return;
+  }
+
+  setSearchMarker(coords.lat, coords.lon);
+  map.setView([coords.lat, coords.lon], 7);
+
+  const dept = findDepartmentForPoint(coords.lat, coords.lon);
+  if (dept && dept.responsibleChapters && dept.responsibleChapters.length > 0) {
+    await handleZoneSearchForDept(dept, coords.lat, coords.lon, query);
+  } else {
+    await handleGlobalSearch(coords.lat, coords.lon, query);
+  }
+}
+
+//----------------------------------------
+// BOUTON "ME LOCALISER"
+//----------------------------------------
+
+function locateMe() {
+  if (!navigator.geolocation) {
+    alert("La géolocalisation n’est pas supportée sur cet appareil.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      setSearchMarker(lat, lon);
+      map.setView([lat, lon], 8);
+
+      const label = "Ta localisation";
+      const dept = findDepartmentForPoint(lat, lon);
+
+      if (dept && dept.responsibleChapters && dept.responsibleChapters.length > 0) {
+        await handleZoneSearchForDept(dept, lat, lon, label);
+      } else {
+        await handleGlobalSearch(lat, lon, label);
+      }
+    },
+    (err) => {
+      console.warn("Erreur de géolocalisation :", err);
+      alert("Impossible de récupérer ta position. Vérifie les autorisations de localisation.");
+    }
+  );
+}
+
+//----------------------------------------
+// EVENTS
+//----------------------------------------
+
+document.getElementById("search-btn").addEventListener("click", searchCity);
+document.getElementById("city-search").addEventListener("keyup", (e) => {
+  if (e.key === "Enter") searchCity();
+});
+
+document.getElementById("locate-btn").addEventListener("click", locateMe);
+
+// toggle liste chapitres
+const chaptersListEl = document.getElementById("chapters-list");
+const chaptersToggleBtn = document.getElementById("toggle-chapters");
+if (chaptersListEl && chaptersToggleBtn) {
+  chaptersToggleBtn.addEventListener("click", () => {
+    const isCollapsed = chaptersListEl.classList.toggle("collapsed");
+    chaptersToggleBtn.textContent = isCollapsed ? "Afficher" : "Masquer";
+    chaptersToggleBtn.setAttribute("aria-expanded", !isCollapsed);
+  });
+}
+
+// bouton numéros d'urgence
+const emergencyBtn = document.getElementById("emergency-toggle");
+const emergencyBox = document.getElementById("emergency-numbers");
+if (emergencyBtn && emergencyBox) {
+  emergencyBtn.addEventListener("click", () => {
+    const isVisible = emergencyBox.style.display === "block";
+    emergencyBox.style.display = isVisible ? "none" : "block";
+    emergencyBtn.textContent = isVisible
+      ? "Afficher les numéros d’urgence"
+      : "Masquer les numéros d’urgence";
+  });
+}
+
+//----------------------------------------
+// CHARGEMENT GLOBAL
+//----------------------------------------
+
+async function loadChapters() {
+  try {
+    const res = await fetch("chapters.json");
+    let data = await res.json();
+
+    // Valeurs par défaut pour les nouveaux champs
+    CHAPTERS = data.map((ch) => {
+      const mode = ch.coverageMode || "distance";
+      const maxD =
+        typeof ch.maxDistanceKm === "number" ? ch.maxDistanceKm : MAX_DISTANCE_KM;
+      const depts = Array.isArray(ch.departments) ? ch.departments : [];
+      return {
+        ...ch,
+        coverageMode: mode,
+        maxDistanceKm: maxD,
+        departments: depts
+      };
+    });
+
+    await initChapters();
+    renderChaptersList();
+    await loadDepartments();
+  } catch (e) {
+    console.error("Erreur de chargement de chapters.json", e);
+    alert("Impossible de charger la liste des chapitres (chapters.json).");
+  }
+}
+
+loadChapters();
