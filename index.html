@@ -395,12 +395,11 @@
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  // Limite de couverture en km (utilisée pour la carte & la logique "hors zone")
+  // Limite de couverture interne (en km)
   const MAX_DISTANCE_KM = 150;
 
-  // --- Configuration OpenRouteService (trajet voiture) ---
-  const ORS_API_KEY = "VOTRE_CLE_API_ORS_ICI"; // <-- à remplacer par ta vraie clé
-  const ORS_DIRECTIONS_URL = "https://api.openrouteservice.org/v2/directions/driving-car";
+  // URL de ton Worker Cloudflare (proxy OpenRouteService)
+  const ORS_WORKER_URL = "https://lagspirit-ors.jimmy-cattiau.workers.dev";
 
   let CHAPTERS = [];
 
@@ -459,8 +458,7 @@
 
   // Temps de trajet approximatif en minutes entre 2 points (chapitre -> ville recherchée)
   async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
-    if (!ORS_API_KEY || ORS_API_KEY === "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImM0ZTdjM2JlNDk1NTQ2YTU5OWI4Zjk4NmFkZjhiMmYxIiwiaCI6Im11cm11cjY0In0=") {
-      // pas de clé configurée => on renvoie null, la carte continue sans le temps
+    if (!ORS_WORKER_URL) {
       return null;
     }
 
@@ -472,17 +470,16 @@
         ]
       };
 
-      const response = await fetch(ORS_DIRECTIONS_URL, {
+      const response = await fetch(ORS_WORKER_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": ORS_API_KEY
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(body)
       });
 
       if (!response.ok) {
-        console.warn("ORS status:", response.status);
+        console.warn("Worker ORS status:", response.status);
         return null;
       }
 
@@ -501,7 +498,7 @@
       const durationMinutes = durationSeconds / 60;
       return durationMinutes;
     } catch (e) {
-      console.warn("Erreur ORS:", e);
+      console.warn("Erreur ORS via worker:", e);
       return null;
     }
   }
@@ -538,7 +535,6 @@
   function refreshDepartmentStyles() {
     departmentLayers.forEach(({ layer, chapterIndex, color, distance }) => {
       if (chapterIndex === -1 || distance > MAX_DISTANCE_KM) {
-        // départements non couverts
         layer.setStyle({
           color: "#555555",
           weight: 1,
@@ -625,7 +621,6 @@
           layer.on("click", function () {
             selectedChapterIndex = bestIndex;
             refreshDepartmentStyles();
-            // pas de temps de trajet pour un clic de département, juste la distance centre->chapitre
             updateResultCard(bestChapter, deptName, false, bestDistance, null);
           });
         } else {
@@ -664,7 +659,6 @@
   function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinutes) {
     const card = document.getElementById("result-card");
 
-    // aucun chapitre trouvé
     if (!chapter && status) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
@@ -749,7 +743,6 @@
       ? `<div class="help-highlight">${chapter.helpInfo}</div>`
       : "";
 
-    // cas hors zone
     if (status === "far" && distanceKm) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
@@ -785,7 +778,6 @@
       return;
     }
 
-    // cas normal
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
       <h3>${chapter.name}</h3>
@@ -828,7 +820,6 @@
         if (typeof ch.lat === "number" && typeof ch.lon === "number") {
           map.setView([ch.lat, ch.lon], 7);
         }
-        // pas de temps de trajet pour clic direct chapitre
         updateResultCard(ch, ch.city, false, null, null);
       });
 
