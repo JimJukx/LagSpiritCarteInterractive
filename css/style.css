@@ -157,15 +157,12 @@ main {
   flex: 1;
   max-width: 380px;
   border-left: 1px solid #333;
-  padding: 0.75rem 0.9rem;
+  padding: 0.75rem 0.9rem 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   background: #141414;
   color: #f5f5f5;
-
-  /* pour que le footer ne recouvre pas le bas */
-  padding-bottom: 90px;
 }
 
 .sidebar h2 {
@@ -311,7 +308,7 @@ main {
 }
 
 /* =========================================
-   DEVise + LOGO
+   DEVISE
 ========================================= */
 
 .motto {
@@ -320,22 +317,6 @@ main {
   margin-top: 1rem;
   color: var(--lag-gold-soft);
   font-weight: 600;
-}
-
-.motto-logo {
-  margin-top: 0.3rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.motto-logo img {
-  max-width: 200px;
-  width: 50%;
-  min-width: 100px;
-  height: auto;
-  display: block;
-  margin: 0.4rem auto 0 auto;
 }
 
 /* =========================================
@@ -381,16 +362,15 @@ main {
     flex-direction: column;
   }
 
+  #map {
+    height: 50vh;
+  }
+
   .sidebar {
     max-width: none;
     border-left: none;
     border-top: 1px solid #333;
-    height: 45vh;
-    padding-bottom: 140px;
-  }
-
-  #map {
-    height: 55vh;
+    /* pas de height fixe → le contenu peut défiler avec la page */
   }
 
   header {
