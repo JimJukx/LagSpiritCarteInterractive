@@ -5,10 +5,8 @@
 const DEPARTMENTS_GEOJSON_URL =
   "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-// Limite “zone couverte” en km
 const MAX_DISTANCE_KM = 150;
 
-// URL de ton Worker Cloudflare (proxy OpenRouteService)
 const ORS_WORKER_URL = "https://lagspirit-ors.jimmy-cattiau.workers.dev";
 
 let CHAPTERS = [];
@@ -39,8 +37,9 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let departmentLayers = [];
 let selectedChapterIndex = null;
-// marqueur de la ville recherchée / position
 let searchMarker = null;
+let searchHalo = null;          // halo doré autour du point (recherche / géoloc)
+let deptClickMarker = null;     // petit point au centre du département cliqué
 
 //----------------------------------------
 // GEO UTILS
@@ -81,7 +80,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Temps de trajet approx. en minutes via Worker + ORS
 async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
   if (!ORS_WORKER_URL) return null;
 
@@ -251,6 +249,19 @@ async function loadDepartments() {
         layer.on("click", () => {
           selectedChapterIndex = bestIndex;
           refreshDepartmentStyles();
+
+          // petit marqueur au centre du département
+          if (deptClickMarker) {
+            map.removeLayer(deptClickMarker);
+          }
+          deptClickMarker = L.circleMarker([center.lat, center.lng], {
+            radius: 5,
+            color: "#d4af37",
+            weight: 2,
+            fillColor: "#000000",
+            fillOpacity: 1
+          }).addTo(map);
+
           updateResultCard(bestChapter, deptName, false, bestDistance, null);
         });
       } else {
@@ -272,13 +283,7 @@ async function loadDepartments() {
         layer.bindPopup(
           `<b>${deptName}</b><br>` +
             `Aucun chapitre Lag Spirit à proximité.<br>` +
-            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br><br>` +
-            `<small><strong>Numéros d’urgence :</strong><br>` +
-            `17 – Police / Gendarmerie<br>` +
-            `15 – SAMU (urgence médicale)<br>` +
-            `3020 – Harcèlement scolaire<br>` +
-            `3018 – Cyberharcèlement et violences numériques<br>` +
-            `119 – Enfance en danger</small>`
+            `<small>Pour toute urgence, utilisez directement les numéros d’urgence (17, 15, 18, 112...). La liste complète est indiquée dans la colonne d’aide.</small>`
         );
       }
     }
@@ -298,7 +303,6 @@ async function loadDepartments() {
 function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinutes) {
   const card = document.getElementById("result-card");
 
-  // aucun chapitre
   if (!chapter && status) {
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
@@ -312,14 +316,11 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         le chapitre Lag Spirit le plus proche et obtenir des informations
         ou des conseils.
       </p>
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
+      <p style="font-size:0.8rem;opacity:0.9;">
+        Pour toute urgence, utilisez directement les numéros d’urgence
+        (17, 15, 18, 112...). La liste complète est indiquée plus bas
+        dans cette colonne.
+      </p>
     `;
     return;
   }
@@ -337,14 +338,11 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
         le chapitre Lag Spirit le plus proche et obtenir des informations
         ou des conseils.
       </p>
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
+      <p style="font-size:0.8rem;opacity:0.9;">
+        Pour toute urgence, utilisez directement les numéros d’urgence
+        (17, 15, 18, 112...). La liste complète est indiquée plus bas
+        dans cette colonne.
+      </p>
     `;
     return;
   }
@@ -408,15 +406,6 @@ function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinut
       ${instagramLink}
 
       ${helpInfo}
-
-      <div class="help-highlight">
-        <strong>Numéros d’urgence :</strong><br>
-        17 – Police / Gendarmerie<br>
-        15 – SAMU (urgence médicale)<br>
-        3020 – Harcèlement scolaire<br>
-        3018 – Cyberharcèlement et violences numériques<br>
-        119 – Enfance en danger
-      </div>
     `;
     return;
   }
@@ -475,7 +464,7 @@ function renderChaptersList() {
 }
 
 //----------------------------------------
-// RECHERCHE PAR VILLE + MARQUEUR
+// RECHERCHE PAR VILLE + MARQUEUR + HALO
 //----------------------------------------
 
 async function searchCity() {
@@ -489,16 +478,28 @@ async function searchCity() {
     return;
   }
 
-  // Marqueur de la ville recherchée (centre noir, bord or)
+  // point noir/or
   if (searchMarker) {
     map.removeLayer(searchMarker);
   }
   searchMarker = L.circleMarker([coords.lat, coords.lon], {
     radius: 8,
-    color: "#d4af37",      // contour or
+    color: "#d4af37",
     weight: 3,
-    fillColor: "#000000",  // centre noir
+    fillColor: "#000000",
     fillOpacity: 1
+  }).addTo(map);
+
+  // halo doré autour
+  if (searchHalo) {
+    map.removeLayer(searchHalo);
+  }
+  searchHalo = L.circle([coords.lat, coords.lon], {
+    radius: 20000, // ~20 km
+    color: "#d4af37",
+    weight: 1,
+    fillOpacity: 0.15,
+    fillColor: "#d4af37"
   }).addTo(map);
 
   map.setView([coords.lat, coords.lon], 7);
@@ -544,7 +545,7 @@ async function searchCity() {
 }
 
 //----------------------------------------
-// BOUTON "ME LOCALISER"
+// BOUTON "ME LOCALISER" + HALO
 //----------------------------------------
 
 function locateMe() {
@@ -558,16 +559,26 @@ function locateMe() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
 
-      // marqueur sur la position actuelle
       if (searchMarker) {
         map.removeLayer(searchMarker);
       }
       searchMarker = L.circleMarker([lat, lon], {
         radius: 8,
-        color: "#d4af37",    // bord or
+        color: "#d4af37",
         weight: 3,
-        fillColor: "#000000",// centre noir
+        fillColor: "#000000",
         fillOpacity: 1
+      }).addTo(map);
+
+      if (searchHalo) {
+        map.removeLayer(searchHalo);
+      }
+      searchHalo = L.circle([lat, lon], {
+        radius: 20000,
+        color: "#d4af37",
+        weight: 1,
+        fillOpacity: 0.15,
+        fillColor: "#d4af37"
       }).addTo(map);
 
       map.setView([lat, lon], 8);
@@ -621,7 +632,7 @@ function locateMe() {
 }
 
 //----------------------------------------
-// EVENTS
+// EVENTS (recherche, localisation, chapitres, numéros d'urgence)
 //----------------------------------------
 
 document.getElementById("search-btn").addEventListener("click", searchCity);
@@ -630,6 +641,30 @@ document.getElementById("city-search").addEventListener("keyup", (e) => {
 });
 
 document.getElementById("locate-btn").addEventListener("click", locateMe);
+
+// toggle liste chapitres
+const chaptersListEl = document.getElementById("chapters-list");
+const chaptersToggleBtn = document.getElementById("toggle-chapters");
+if (chaptersListEl && chaptersToggleBtn) {
+  chaptersToggleBtn.addEventListener("click", () => {
+    const isCollapsed = chaptersListEl.classList.toggle("collapsed");
+    chaptersToggleBtn.textContent = isCollapsed ? "Afficher" : "Masquer";
+    chaptersToggleBtn.setAttribute("aria-expanded", !isCollapsed);
+  });
+}
+
+// bouton numéros d'urgence
+const emergencyBtn = document.getElementById("emergency-toggle");
+const emergencyBox = document.getElementById("emergency-numbers");
+if (emergencyBtn && emergencyBox) {
+  emergencyBtn.addEventListener("click", () => {
+    const isVisible = emergencyBox.style.display === "block";
+    emergencyBox.style.display = isVisible ? "none" : "block";
+    emergencyBtn.textContent = isVisible
+      ? "Afficher les numéros d’urgence"
+      : "Masquer les numéros d’urgence";
+  });
+}
 
 //----------------------------------------
 // CHARGEMENT GLOBAL
