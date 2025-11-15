@@ -459,7 +459,7 @@
 
   // Temps de trajet approximatif en minutes entre 2 points (chapitre -> ville recherchée)
   async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
-    if (!ORS_API_KEY || ORS_API_KEY === "VOTRE_CLE_API_ORS_ICI") {
+    if (!ORS_API_KEY || ORS_API_KEY === "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImM0ZTdjM2JlNDk1NTQ2YTU5OWI4Zjk4NmFkZjhiMmYxIiwiaCI6Im11cm11cjY0In0=") {
       // pas de clé configurée => on renvoie null, la carte continue sans le temps
       return null;
     }
