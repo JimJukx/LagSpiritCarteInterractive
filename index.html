@@ -365,7 +365,8 @@
     <h2>Besoin d’aide&nbsp;?</h2>
     <p class="info-text">
       Entre ta ville ou clique sur une zone de la carte.
-      Le chapitre le plus proche apparaîtra ici avec ses contacts.
+      Le chapitre le plus proche (dans la limite de 100 km) apparaîtra ici
+      avec ses contacts.
     </p>
 
     <div id="result-card" class="chapter-card">
@@ -373,7 +374,7 @@
       <h3>Aucun chapitre affiché</h3>
       <p>
         Entre une ville ou clique sur une zone de la carte pour afficher
-        le chapitre le plus proche.
+        le chapitre le plus proche (si un chapitre existe à moins de 100 km).
       </p>
     </div>
 
@@ -392,6 +393,9 @@
 <script>
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
+
+  // Limite de couverture : rayon max en km
+  const MAX_DISTANCE_KM = 100;
 
   let CHAPTERS = [];
 
@@ -478,7 +482,18 @@
   }
 
   function refreshDepartmentStyles() {
-    departmentLayers.forEach(({ layer, chapterIndex, color }) => {
+    departmentLayers.forEach(({ layer, chapterIndex, color, distance }) => {
+      if (chapterIndex === -1 || distance > MAX_DISTANCE_KM) {
+        // départements non couverts
+        layer.setStyle({
+          color: "#555555",
+          weight: 1,
+          fillColor: "#202020",
+          fillOpacity: 0.15
+        });
+        return;
+      }
+
       if (selectedChapterIndex === null) {
         layer.setStyle({
           color: color,
@@ -540,33 +555,38 @@
           feature.properties &&
           (feature.properties.nom || feature.properties.NOM || "Département");
 
-        if (bestChapter && bestIndex >= 0) {
+        if (bestChapter && bestIndex >= 0 && bestDistance <= MAX_DISTANCE_KM) {
           const color = COLORS[bestIndex % COLORS.length];
 
-          departmentLayers.push({ layer, chapterIndex: bestIndex, color });
+          departmentLayers.push({ layer, chapterIndex: bestIndex, color, distance: bestDistance });
 
           let popupContent =
             `<b>${deptName}</b><br>` +
             `Chapitre : ${bestChapter.name}<br>` +
-            `Ville du chapitre : ${bestChapter.city}`;
+            `Ville du chapitre : ${bestChapter.city}<br>` +
+            `~${bestDistance.toFixed(0)} km`;
 
           layer.bindPopup(popupContent);
 
           layer.on("click", function () {
             selectedChapterIndex = bestIndex;
             refreshDepartmentStyles();
-            updateResultCard(bestChapter, deptName, false, null);
+            updateResultCard(bestChapter, deptName, false, bestDistance);
           });
         } else {
-          const color = "#d4af37";
-          departmentLayers.push({ layer, chapterIndex: -1, color });
+          const color = "#555555";
+          departmentLayers.push({ layer, chapterIndex: -1, color, distance: Infinity });
+
           layer.setStyle({
             color: color,
-            weight: 1.5,
-            fillColor: "#ffffff",
+            weight: 1,
+            fillColor: "#202020",
             fillOpacity: 0.15
           });
-          layer.bindPopup(`<b>${deptName}</b><br>Aucun chapitre associé pour l’instant.`);
+
+          layer.bindPopup(
+            `<b>${deptName}</b><br>Aucun chapitre Lag Spirit dans un rayon de ${MAX_DISTANCE_KM} km.`
+          );
         }
       }
     }).addTo(map);
@@ -580,14 +600,15 @@
     if (!chapter || notFound) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
-        <h3>Aucun chapitre trouvé</h3>
+        <h3>Aucun chapitre disponible</h3>
         <p>
-          Nous n’avons pas identifié de chapitre pour
+          Aucun chapitre Lag Spirit n’a été trouvé dans un rayon de
+          <strong>${MAX_DISTANCE_KM} km</strong> autour de
           <strong>${searchedCity}</strong>.
         </p>
         <p>
           Tu peux tout de même contacter Lag Spirit&nbsp;:
-          un membre te redirigera vers le bon chapitre.
+          un membre te redirigera vers le bon interlocuteur si possible.
         </p>
       `;
       return;
@@ -693,7 +714,7 @@
 
     map.setView([coords.lat, coords.lon], 7);
 
-    if (bestChapter) {
+    if (bestChapter && bestDistance <= MAX_DISTANCE_KM) {
       selectedChapterIndex = bestIndex;
       refreshDepartmentStyles();
       updateResultCard(bestChapter, query, false, bestDistance);
