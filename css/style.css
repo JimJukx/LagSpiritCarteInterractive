@@ -1,17 +1,9 @@
-/* =========================================
-   PALETTE & VARIABLES LAG SPIRIT
-========================================= */
-
 :root {
   --lag-black: #000000;
   --lag-white: #ffffff;
   --lag-gold: #d4af37;
   --lag-gold-soft: #e7c865;
 }
-
-/* =========================================
-   RESET & BASE
-========================================= */
 
 * {
   box-sizing: border-box;
@@ -22,14 +14,12 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   background: #111;
   color: var(--lag-white);
 }
 
-/* =========================================
-   HEADER
-========================================= */
+/* ------------ HEADER ------------ */
 
 header {
   padding: 0.4rem 0.9rem;
@@ -65,6 +55,7 @@ header {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
 header h1 {
@@ -79,9 +70,7 @@ header .subtitle {
   opacity: 0.9;
 }
 
-/* =========================================
-   SEARCH AREA
-========================================= */
+/* ------------ SEARCH AREA ------------ */
 
 .search-area {
   margin-left: auto;
@@ -124,9 +113,7 @@ header .subtitle {
   color: var(--lag-gold);
 }
 
-/* =========================================
-   PAGE LAYOUT
-========================================= */
+/* ------------ MAIN LAYOUT ------------ */
 
 main {
   display: flex;
@@ -140,13 +127,7 @@ main {
   position: relative;
 }
 
-.leaflet-container {
-  background: #101010;
-}
-
-/* =========================================
-   SIDEBAR
-========================================= */
+/* ------------ SIDEBAR ------------ */
 
 .sidebar {
   flex: 1;
@@ -158,6 +139,9 @@ main {
   gap: 0.5rem;
   background: #141414;
   color: #f5f5f5;
+
+  /* Empêche le footer de recouvrir le bas */
+  padding-bottom: 90px;
 }
 
 .sidebar h2 {
@@ -171,16 +155,12 @@ main {
   color: #d0d0d0;
 }
 
-/* =========================================
-   RESULT CARD
-========================================= */
-
 .chapter-card {
   margin-top: 0.5rem;
   padding: 0.75rem;
   border-radius: 0.75rem;
   background: #181818;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
   border: 1px solid #333;
   display: flex;
   flex-direction: column;
@@ -207,37 +187,7 @@ main {
   border: 1px solid var(--lag-gold);
 }
 
-.chapter-card p {
-  margin: 0.15rem 0;
-  font-size: 0.85rem;
-}
-
-.chapter-card strong {
-  font-weight: 600;
-  color: var(--lag-gold-soft);
-}
-
-.chapter-card a {
-  color: var(--lag-gold-soft);
-  text-decoration: none;
-}
-
-.chapter-card a:hover {
-  text-decoration: underline;
-}
-
-.help-highlight {
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.6rem;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.6);
-  font-size: 0.8rem;
-}
-
-/* =========================================
-   LISTE DES CHAPITRES
-========================================= */
+/* ------------ CHAPTER LIST ------------ */
 
 .chapters-list-wrapper {
   margin-top: 0.75rem;
@@ -302,9 +252,7 @@ main {
   max-width: 220px;
 }
 
-/* =========================================
-   DEVise + LOGO
-========================================= */
+/* ------------ MOTTO + LOGO ------------ */
 
 .motto {
   font-size: 1.2rem;
@@ -314,59 +262,32 @@ main {
   font-weight: 600;
 }
 
-.motto-logo {
-  margin-top: 0.3rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .motto-logo img {
-  max-width: 200px;
-  width: 50%;
-  min-width: 100px;
+  max-width: 220px;
+  width: 70%;
+  min-width: 120px;
   height: auto;
   display: block;
-  margin: 0.4rem auto 0 auto;
+  margin: 0.5rem auto 0 auto;
 }
 
-/* =========================================
-   FOOTER — MENTION IMPORTANTE
-========================================= */
+/* ------------ FOOTER ------------ */
 
-.site-footer {
-  background: #0a0a0a;
-  border-top: 1px solid #333;
-  padding: 0.7rem 0.9rem;
-  color: #ddd;
+footer {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  padding: 0.6rem;
   font-size: 0.75rem;
+  text-align: center;
+  border-top: 2px solid var(--lag-gold);
+
+  /* Empêche de recouvrir la sidebar */
+  position: relative;
+  z-index: 1;
 }
 
-.footer-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.footer-title {
-  margin: 0 0 0.25rem 0;
-  font-weight: 600;
-  color: var(--lag-gold-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.footer-text {
-  margin: 0.15rem 0;
-  line-height: 1.4;
-}
-
-.footer-text strong {
-  color: var(--lag-gold-soft);
-}
-
-/* =========================================
-   MOBILE
-========================================= */
+/* ------------ MOBILE ------------ */
 
 @media (max-width: 800px) {
   main {
@@ -377,25 +298,12 @@ main {
     max-width: none;
     border-left: none;
     border-top: 1px solid #333;
-    height: 45vh;
+    height: 48vh;
+
+    padding-bottom: 140px; /* plus d’espace sur mobile */
   }
 
   #map {
-    height: 55vh;
-  }
-
-  header {
-    gap: 0.4rem;
-  }
-
-  .search-area {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-
-  .site-footer {
-    font-size: 0.72rem;
-    padding: 0.6rem 0.7rem;
+    height: 52vh;
   }
 }
