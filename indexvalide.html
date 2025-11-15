@@ -395,8 +395,12 @@
   const DEPARTMENTS_GEOJSON_URL =
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson";
 
-  // Limite de couverture interne (en km) – NON affichée
+  // Limite de couverture en km (utilisée pour la carte & la logique "hors zone")
   const MAX_DISTANCE_KM = 150;
+
+  // --- Configuration OpenRouteService (trajet voiture) ---
+  const ORS_API_KEY = "VOTRE_CLE_API_ORS_ICI"; // <-- à remplacer par ta vraie clé
+  const ORS_DIRECTIONS_URL = "https://api.openrouteservice.org/v2/directions/driving-car";
 
   let CHAPTERS = [];
 
@@ -451,6 +455,55 @@
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  }
+
+  // Temps de trajet approximatif en minutes entre 2 points (chapitre -> ville recherchée)
+  async function getTravelTimeMinutes(latFrom, lonFrom, latTo, lonTo) {
+    if (!ORS_API_KEY || ORS_API_KEY === "VOTRE_CLE_API_ORS_ICI") {
+      // pas de clé configurée => on renvoie null, la carte continue sans le temps
+      return null;
+    }
+
+    try {
+      const body = {
+        coordinates: [
+          [lonFrom, latFrom],
+          [lonTo, latTo]
+        ]
+      };
+
+      const response = await fetch(ORS_DIRECTIONS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": ORS_API_KEY
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        console.warn("ORS status:", response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      if (
+        !data ||
+        !data.routes ||
+        !data.routes[0] ||
+        !data.routes[0].summary ||
+        typeof data.routes[0].summary.duration !== "number"
+      ) {
+        return null;
+      }
+
+      const durationSeconds = data.routes[0].summary.duration;
+      const durationMinutes = durationSeconds / 60;
+      return durationMinutes;
+    } catch (e) {
+      console.warn("Erreur ORS:", e);
+      return null;
+    }
   }
 
   async function initChapters() {
@@ -572,7 +625,8 @@
           layer.on("click", function () {
             selectedChapterIndex = bestIndex;
             refreshDepartmentStyles();
-            updateResultCard(bestChapter, deptName, false, bestDistance);
+            // pas de temps de trajet pour un clic de département, juste la distance centre->chapitre
+            updateResultCard(bestChapter, deptName, false, bestDistance, null);
           });
         } else {
           const color = "#555555";
@@ -588,7 +642,13 @@
           layer.bindPopup(
             `<b>${deptName}</b><br>` +
             `Aucun chapitre Lag Spirit à proximité.<br>` +
-            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche ou utiliser les numéros d’urgence si nécessaire.</small>`
+            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche.</small><br>` +
+            `<small><br><strong>Numéros d’urgence :</strong><br>` +
+            `17 – Police / Gendarmerie<br>` +
+            `15 – SAMU (urgence médicale)<br>` +
+            `3020 – Harcèlement scolaire<br>` +
+            `3018 – Cyberharcèlement et violences numériques<br>` +
+            `119 – Enfance en danger</small>`
           );
         }
       }
@@ -597,10 +657,15 @@
     refreshDepartmentStyles();
   }
 
-  function updateResultCard(chapter, searchedCity, notFound, distanceKm) {
+  // status :
+  //   false  -> chapitre trouvé dans la zone
+  //   "far"  -> chapitre trouvé mais hors zone (distance importante)
+  //   true   -> aucun chapitre à proximité / erreur
+  function updateResultCard(chapter, searchedCity, status, distanceKm, travelMinutes) {
     const card = document.getElementById("result-card");
 
-    if (!chapter || notFound) {
+    // aucun chapitre trouvé
+    if (!chapter && status) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
         <h3>Aucun chapitre à proximité</h3>
@@ -625,6 +690,45 @@
       return;
     }
 
+    if (!chapter) {
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>Aucun chapitre à proximité</h3>
+        <p>
+          Aucun chapitre Lag Spirit n’a été identifié à proximité de
+          <strong>${searchedCity}</strong>.
+        </p>
+        <p>
+          Vous pouvez utiliser la recherche en haut de la page pour connaître
+          le chapitre Lag Spirit le plus proche et obtenir des informations
+          ou des conseils.
+        </p>
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
+      return;
+    }
+
+    let distBlock = "";
+    if (distanceKm) {
+      distBlock = `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km`;
+      if (travelMinutes) {
+        const hours = Math.floor(travelMinutes / 60);
+        const minutes = Math.round(travelMinutes % 60);
+        const timeLabel = hours > 0
+          ? `${hours}h${minutes.toString().padStart(2, "0")}`
+          : `${minutes} min`;
+        distBlock += ` (~${timeLabel})`;
+      }
+      distBlock += `</p>`;
+    }
+
     const phone = chapter.contactPhone
       ? `<p><strong>Téléphone :</strong> ${chapter.contactPhone}</p>`
       : "";
@@ -641,21 +745,54 @@
       ? `<p><strong>Instagram :</strong> <a href="${chapter.instagram}" target="_blank">Ouvrir le profil</a></p>`
       : "";
 
-    const dist = distanceKm
-      ? `<p><strong>Distance estimée :</strong> ~${distanceKm.toFixed(0)} km</p>`
-      : "";
-
     const helpInfo = chapter.helpInfo
       ? `<div class="help-highlight">${chapter.helpInfo}</div>`
       : "";
 
+    // cas hors zone
+    if (status === "far" && distanceKm) {
+      card.innerHTML = `
+        <div class="chapter-tag">Chapitre sélectionné</div>
+        <h3>${chapter.name}</h3>
+
+        <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
+        <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
+        ${distBlock}
+
+        <p>
+          Ce chapitre est actuellement le plus proche de la zone recherchée,
+          mais la distance peut rendre un déplacement difficile.
+          Tu peux néanmoins les contacter pour être écouté(e), obtenir des conseils
+          et être orienté(e).
+        </p>
+
+        ${phone}
+        ${emailLink}
+        ${facebookLink}
+        ${instagramLink}
+
+        ${helpInfo}
+
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
+      `;
+      return;
+    }
+
+    // cas normal
     card.innerHTML = `
       <div class="chapter-tag">Chapitre sélectionné</div>
       <h3>${chapter.name}</h3>
 
       <p><strong>Ville du chapitre :</strong> ${chapter.city}</p>
       <p><strong>Ville / zone recherchée :</strong> ${searchedCity}</p>
-      ${dist}
+      ${distBlock}
 
       ${phone}
       ${emailLink}
@@ -691,7 +828,8 @@
         if (typeof ch.lat === "number" && typeof ch.lon === "number") {
           map.setView([ch.lat, ch.lon], 7);
         }
-        updateResultCard(ch, ch.city, false, null);
+        // pas de temps de trajet pour clic direct chapitre
+        updateResultCard(ch, ch.city, false, null, null);
       });
 
       container.appendChild(btn);
@@ -705,7 +843,7 @@
 
     const coords = await geocodeCity(query);
     if (!coords) {
-      updateResultCard(null, query, true);
+      updateResultCard(null, query, true, null, null);
       return;
     }
 
@@ -725,12 +863,28 @@
 
     map.setView([coords.lat, coords.lon], 7);
 
-    if (bestChapter && bestDistance <= MAX_DISTANCE_KM) {
+    if (bestChapter) {
+      const outOfRange = bestDistance > MAX_DISTANCE_KM;
       selectedChapterIndex = bestIndex;
       refreshDepartmentStyles();
-      updateResultCard(bestChapter, query, false, bestDistance);
+
+      let travelMinutes = null;
+      if (typeof bestChapter.lat === "number" && typeof bestChapter.lon === "number") {
+        travelMinutes = await getTravelTimeMinutes(
+          bestChapter.lat,
+          bestChapter.lon,
+          coords.lat,
+          coords.lon
+        );
+      }
+
+      if (outOfRange) {
+        updateResultCard(bestChapter, query, "far", bestDistance, travelMinutes);
+      } else {
+        updateResultCard(bestChapter, query, false, bestDistance, travelMinutes);
+      }
     } else {
-      updateResultCard(null, query, true);
+      updateResultCard(null, query, true, null, null);
     }
   }
 
