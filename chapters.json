@@ -44,7 +44,7 @@
     "city": "Carpentras",
     "coverageMode": "both",
     "maxDistanceKm": 100,
-    "departments": ["84", "34"],
+    "departments": ["84", "34", "68"],
     "contactEmail": "",
     "contactPhone": "",
     "facebook": "https://www.facebook.com/profile.php?id=100057680550132",
