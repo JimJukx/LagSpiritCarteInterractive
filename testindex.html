@@ -754,4 +754,78 @@
         </div>
       `;
 
-      b
+      btn.addEventListener("click", () => {
+        selectedChapterIndex = idx;
+        refreshDepartmentStyles();
+
+        if (typeof ch.lat === "number" && typeof ch.lon === "number") {
+          map.setView([ch.lat, ch.lon], 7);
+        }
+        updateResultCard(ch, ch.city, false, null);
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  async function searchCity() {
+    const input = document.getElementById("city-search");
+    const query = input.value.trim();
+    if (!query) return;
+
+    const coords = await geocodeCity(query);
+    if (!coords) {
+      updateResultCard(null, query, true, null);
+      return;
+    }
+
+    let bestChapter = null;
+    let bestDistance = Infinity;
+    let bestIndex = -1;
+
+    CHAPTERS.forEach((chapter, idx) => {
+      if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") return;
+      const d = haversineDistance(coords.lat, coords.lon, chapter.lat, chapter.lon);
+      if (d < bestDistance) {
+        bestDistance = d;
+        bestChapter = chapter;
+        bestIndex = idx;
+      }
+    });
+
+    map.setView([coords.lat, coords.lon], 7);
+
+    if (bestChapter) {
+      const outOfRange = bestDistance > MAX_DISTANCE_KM;
+      selectedChapterIndex = bestIndex;
+      refreshDepartmentStyles();
+      updateResultCard(bestChapter, query, outOfRange, bestDistance);
+    } else {
+      updateResultCard(null, query, true, null);
+    }
+  }
+
+  document.getElementById("search-btn").addEventListener("click", searchCity);
+  document.getElementById("city-search").addEventListener("keyup", (e) => {
+    if (e.key === "Enter") searchCity();
+  });
+
+  async function loadChapters() {
+    try {
+      const res = await fetch("chapters.json");
+      CHAPTERS = await res.json();
+
+      await initChapters();
+      renderChaptersList();
+      await loadDepartments();
+    } catch (e) {
+      console.error("Erreur de chargement de chapters.json", e);
+      alert("Impossible de charger la liste des chapitres (chapters.json).");
+    }
+  }
+
+  loadChapters();
+</script>
+
+</body>
+</html>
