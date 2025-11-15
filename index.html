@@ -564,7 +564,7 @@
             `<b>${deptName}</b><br>` +
             `Chapitre : ${bestChapter.name}<br>` +
             `Ville du chapitre : ${bestChapter.city}<br>` +
-            `~${bestDistance.toFixed(0)} km`;
+            `<small>Vous pouvez prendre contact avec ce chapitre afin d’obtenir des informations ou des conseils.</small>`;
 
           layer.bindPopup(popupContent);
 
@@ -585,7 +585,9 @@
           });
 
           layer.bindPopup(
-            `<b>${deptName}</b><br>Aucun chapitre Lag Spirit dans un rayon de ${MAX_DISTANCE_KM} km.`
+            `<b>${deptName}</b><br>` +
+            `Aucun chapitre Lag Spirit à proximité.<br>` +
+            `<small>Vous pouvez utiliser la recherche en haut de la page pour connaître le chapitre Lag Spirit le plus proche ou utiliser les numéros d’urgence si nécessaire.</small>`
           );
         }
       }
@@ -600,16 +602,24 @@
     if (!chapter || notFound) {
       card.innerHTML = `
         <div class="chapter-tag">Chapitre sélectionné</div>
-        <h3>Aucun chapitre disponible</h3>
+        <h3>Aucun chapitre à proximité</h3>
         <p>
-          Aucun chapitre Lag Spirit n’a été trouvé dans un rayon de
-          <strong>${MAX_DISTANCE_KM} km</strong> autour de
+          Aucun chapitre Lag Spirit n’a été identifié à proximité de
           <strong>${searchedCity}</strong>.
         </p>
         <p>
-          Tu peux tout de même contacter Lag Spirit&nbsp;:
-          un membre te redirigera vers le bon interlocuteur si possible.
+          Vous pouvez utiliser la recherche en haut de la page pour connaître
+          le chapitre Lag Spirit le plus proche et obtenir des informations
+          ou des conseils.
         </p>
+        <div class="help-highlight">
+          <strong>Numéros d’urgence :</strong><br>
+          17 – Police / Gendarmerie<br>
+          15 – SAMU (urgence médicale)<br>
+          3020 – Harcèlement scolaire<br>
+          3018 – Cyberharcèlement et violences numériques<br>
+          119 – Enfance en danger
+        </div>
       `;
       return;
     }
