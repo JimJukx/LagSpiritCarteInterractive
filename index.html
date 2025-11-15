@@ -40,6 +40,11 @@
   </div>
 </header>
 
+<!-- Bandeau d'accueil -->
+<div class="welcome-banner">
+  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+</div>
+
 <main>
   <div id="map"></div>
 
@@ -62,13 +67,45 @@
     </div>
 
     <div class="chapters-list-wrapper">
-      <div class="chapters-list-title">Chapitres Lag Spirit</div>
+      <div class="chapters-list-header">
+        <div class="chapters-list-title">Chapitres Lag Spirit</div>
+        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="true">
+          Masquer
+        </button>
+      </div>
       <div id="chapters-list" class="chapters-list"></div>
     </div>
 
     <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
-    <div class="motto-logo">
-      <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
+
+    <!-- Bloc info important sous la devise -->
+    <div class="legal-info">
+      <p>
+        Le <strong>Lag Spirit MC</strong> compte parmi ses membres des
+        professionnels issus des forces de l’ordre. Cependant, dans le cadre
+        de nos actions, ces membres interviennent strictement en qualité de
+        <strong>bénévoles associatifs</strong>. Nos interventions ne se
+        substituent en aucun cas aux services d’urgence, aux autorités
+        judiciaires ou aux professionnels de santé.
+      </p>
+      <p>
+        En cas de danger, de menace ou de situation nécessitant une intervention
+        officielle, utilisez les <strong>numéros d’urgence</strong>.
+      </p>
+      <button id="emergency-toggle" class="emergency-btn">
+        Afficher les numéros d’urgence
+      </button>
+      <div id="emergency-numbers" class="emergency-numbers">
+        <p class="legal-numbers">
+          <strong>17</strong> – Police / Gendarmerie<br />
+          <strong>15</strong> – SAMU (urgence médicale)<br />
+          <strong>18</strong> – Pompiers<br />
+          <strong>112</strong> – Numéro d’urgence européen<br />
+          <strong>3020</strong> – Harcèlement scolaire<br />
+          <strong>3018</strong> – Cyberharcèlement et violences numériques<br />
+          <strong>119</strong> – Enfance en danger
+        </p>
+      </div>
     </div>
   </aside>
 </main>
