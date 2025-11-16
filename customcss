@@ -15,3 +15,23 @@
     padding: 0 !important;
     margin: 0 !important;
 }
+/* Faire en sorte que le bloc Lag Spirit prenne toute la hauteur de l'écran */
+.lagspirit-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Le <main> doit grandir et contenir la carte + la sidebar sur toute la hauteur */
+.lagspirit-wrapper main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* La carte doit s'étirer en hauteur */
+.lagspirit-wrapper #map {
+  flex: 2;
+  height: 100%;
+  min-height: 450px;
+}
