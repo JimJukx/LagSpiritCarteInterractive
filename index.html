@@ -12,11 +12,12 @@
   />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Styles -->
+  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
+
 <header>
   <div class="brand">
     <div class="brand-logo">
@@ -39,9 +40,14 @@
       <div id="search-suggestions" class="search-suggestions"></div>
     </div>
     <button id="search-btn">Trouve le chapitre le plus proche</button>
-    <button id="locate-btn" class="secondary-btn">Me localiser</button>
+    <button id="locate-btn">Me localiser</button>
   </div>
 </header>
+
+<!-- Bandeau d'accueil -->
+<div class="welcome-banner">
+  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+</div>
 
 <main>
   <div id="map"></div>
@@ -49,45 +55,50 @@
   <aside class="sidebar">
     <h2>Besoin d’aide&nbsp;?</h2>
     <p class="info-text">
-      Entre ta ville, utilise le bouton <strong>Me localiser</strong> ou clique sur une
-      zone de la carte. Si la distance est trop importante, il peut être difficile
-      pour un chapitre de se déplacer, mais nous restons disponibles pour te soutenir,
-      t’écouter et t’apporter des conseils.
+      Entre ta ville ou clique sur une zone de la carte.
+      Si la distance est trop importante, il peut être difficile pour un chapitre
+      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
+      et t’apporter des conseils.
     </p>
 
     <div id="result-card" class="chapter-card">
       <div class="chapter-tag">Chapitre sélectionné</div>
       <h3>Aucun chapitre affiché</h3>
       <p>
-        Entre une ville, utilise la localisation ou clique sur la carte pour
-        afficher le chapitre Lag Spirit le plus proche si un chapitre couvre ta zone.
+        Entre une ville ou clique sur une zone de la carte pour afficher
+        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
       </p>
     </div>
 
     <div class="chapters-list-wrapper">
-      <div class="chapters-list-title">Chapitres Lag Spirit</div>
+      <div class="chapters-list-header">
+        <div class="chapters-list-title">Chapitres Lag Spirit</div>
+        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="false">
+          Afficher
+        </button>
+      </div>
       <div id="chapters-list" class="chapters-list"></div>
     </div>
 
     <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
 
-    <div class="emergency-panel">
-      <p class="emergency-intro">
-        Le Lag Spirit MC compte parmi ses membres des forces de l’ordre.
-        Cependant, dans le cadre de nos actions, nos membres interviennent
-        strictement en qualité de bénévoles associatifs.
-        <br /><br />
-        <strong>Nous ne nous substituons pas aux services d’urgence,
-        aux autorités judiciaires ou aux professionnels de santé.</strong>
-        En cas de danger immédiat ou de situation nécessitant une urgence
-        vitale, contacte immédiatement les secours et/ou les autorités
-        compétentes.
+    <!-- Bloc info important sous la devise -->
+    <div class="legal-info">
+      <p>
+        Le <strong>Lag Spirit MC</strong> compte parmi ses membres des
+        professionnels issus des forces de l’ordre. Cependant, dans le cadre
+        de nos actions, ces membres interviennent strictement en qualité de
+        <strong>bénévoles associatifs</strong>. Nos interventions ne se
+        substituent en aucun cas aux services d’urgence, aux autorités
+        judiciaires ou aux professionnels de santé.
       </p>
-
+      <p>
+        En cas de danger, de menace ou de situation nécessitant une intervention
+        officielle, utilisez les <strong>numéros d’urgence</strong>.
+      </p>
       <button id="emergency-toggle" class="emergency-btn">
         Afficher les numéros d’urgence
       </button>
-
       <div id="emergency-numbers" class="emergency-numbers">
         <p class="legal-numbers">
           <strong>17</strong> – Police / Gendarmerie<br />
@@ -104,5 +115,6 @@
 
 <!-- JS -->
 <script src="js/app.js"></script>
+
 </body>
 </html>
