@@ -50,12 +50,15 @@ function lagspirit_carte_register_assets() {
         true
     );
 
-    // On donne au JS l’URL de base des assets (pour chapters.json, logo, etc.)
+    // On donne au JS :
+    // - l’URL de base des assets
+    // - l’URL directe du chapters.json
     wp_localize_script(
         'lagspirit-carte-script',
         'lagspiritCarteData',
         [
             'assetsBaseUrl' => LAGSPIRIT_CARTE_URL . 'assets/',
+            'chaptersUrl'   => LAGSPIRIT_CARTE_URL . 'assets/data/chapters.json',
         ]
     );
 }
