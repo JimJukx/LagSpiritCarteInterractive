@@ -38,8 +38,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 let departmentLayers = [];
 let selectedChapterIndex = null;
-let searchMarker = null;   // point noir + bord or
-let searchHalo = null;     // halo doré autour
+let searchMarker = null;
+let searchHalo = null;
 
 //----------------------------------------
 // AUTO-COMPLÉTION (variables)
@@ -149,7 +149,7 @@ async function fetchCitySuggestions(query) {
 
   const url =
     "https://nominatim.openstreetmap.org/search?" +
-    "format=json&addressdetails=1&limit=10&countrycodes=fr&" +
+    "format=json&addressdetails=1&limit=20&countrycodes=fr&" +
     "q=" +
     encodeURIComponent(query);
 
@@ -157,7 +157,7 @@ async function fetchCitySuggestions(query) {
     const res = await fetch(url, { headers: { "Accept-Language": "fr" } });
     const data = await res.json();
 
-    // On prépare les données avec un "joli" label + vrai nom de ville
+    const filteredTypes = ["city", "town", "village", "hamlet", "municipality"];
     const mapped = data.map((item) => {
       const addr = item.address || {};
       const cityName =
@@ -165,20 +165,42 @@ async function fetchCitySuggestions(query) {
         addr.town ||
         addr.village ||
         addr.municipality ||
-        addr.county ||
+        addr.hamlet ||
         "";
       return {
         raw: item,
         label: item.display_name,
         niceLabel: buildNiceCityLabelPublic(item),
-        cityName
+        cityName,
+        type: item.type || ""
       };
     });
 
-    // 1) on enlève les doublons sur le "niceLabel"
+    let onlyPlaces = mapped.filter((m) =>
+      filteredTypes.includes(m.type)
+    );
+    if (onlyPlaces.length === 0) {
+      onlyPlaces = mapped;
+    }
+
+    // tri : nom qui commence par la saisie en priorité
+    onlyPlaces.sort((a, b) => {
+      const aName = (a.cityName || "").toLowerCase();
+      const bName = (b.cityName || "").toLowerCase();
+
+      const aStarts = aName.startsWith(qLower);
+      const bStarts = bName.startsWith(qLower);
+
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      return aName.localeCompare(bName);
+    });
+
+    // suppression des doublons
     const unique = [];
     const seen = new Set();
-    for (const m of mapped) {
+    for (const m of onlyPlaces) {
       const key = m.niceLabel;
       if (!seen.has(key)) {
         seen.add(key);
@@ -186,19 +208,7 @@ async function fetchCitySuggestions(query) {
       }
     }
 
-    // 2) on garde d'abord les villes qui commencent par ce que tu tapes (Auri…)
-    let filtered = unique.filter(
-      (m) =>
-        m.cityName &&
-        m.cityName.toLowerCase().startsWith(qLower)
-    );
-
-    // si rien ne matche précisément, on retombe sur la liste complète
-    if (filtered.length === 0) {
-      filtered = unique;
-    }
-
-    searchSuggestionsData = filtered;
+    searchSuggestionsData = unique.slice(0, 8);
     renderSearchSuggestions(searchSuggestionsData);
   } catch (e) {
     console.warn("Erreur suggestions ville (public) :", e);
@@ -247,12 +257,19 @@ function renderSearchSuggestions(list) {
 
     div.addEventListener("click", () => {
       const input = document.getElementById("city-search");
-      input.value = item.niceLabel || item.label;
+      input.value = item.niceLabel || item.cityName || item.label;
 
       box.style.display = "none";
       box.innerHTML = "";
 
-      searchCity();
+      const raw = item.raw;
+      const lat = parseFloat(raw.lat);
+      const lon = parseFloat(raw.lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        searchFromCoordinates(lat, lon, input.value);
+      } else {
+        searchCity();
+      }
     });
 
     box.appendChild(div);
@@ -338,7 +355,6 @@ function refreshDepartmentStyles() {
         });
       }
     } else {
-      // zone partagée (bicolore) → pour l’instant, on utilise la couleur du chapitre principal
       const idx = primaryChapterIndex;
       const color = COLORS[idx % COLORS.length];
 
@@ -400,7 +416,7 @@ async function loadDepartments() {
       let primaryChapterIndex = -1;
       let primaryDistance = Infinity;
 
-      // 1) Couverture manuelle par départements (coverageMode = departments ou both)
+      // 1) Couverture manuelle par départements
       if (deptCode) {
         const manualCandidates = [];
 
@@ -438,7 +454,7 @@ async function loadDepartments() {
         }
       }
 
-      // 2) Si aucun chapitre manuel, on passe en mode automatique (coverageMode = distance ou both)
+      // 2) Si aucun chapitre manuel, couverture par distance
       if (responsibleChapters.length === 0) {
         const autoCandidates = [];
 
@@ -484,7 +500,6 @@ async function loadDepartments() {
 
       departmentLayers.push(deptInfo);
 
-      // STYLE / POPUP
       if (!responsibleChapters || responsibleChapters.length === 0) {
         layer.setStyle({
           color: "#555555",
@@ -517,7 +532,6 @@ async function loadDepartments() {
             `<small>Ce chapitre est référent pour ce département. Vous pouvez le contacter pour obtenir des informations ou des conseils.</small>`
         );
       } else {
-        // zone partagée (plusieurs chapitres)
         const primaryIdx = primaryChapterIndex;
         const primaryChapter = CHAPTERS[primaryIdx];
         const color = COLORS[primaryIdx % COLORS.length];
@@ -544,7 +558,6 @@ async function loadDepartments() {
         );
       }
 
-      // Clic sur un département → affiche le/les chapitres référents de la zone
       layer.on("click", () => {
         if (!responsibleChapters || responsibleChapters.length === 0) {
           selectedChapterIndex = null;
@@ -595,10 +608,6 @@ async function loadDepartments() {
 //----------------------------------------
 // FICHE CHAPITRE (SIDEBAR)
 //----------------------------------------
-// status :
-//  false -> chapitre trouvé dans la zone
-//  "far" -> chapitre trouvé mais loin (> MAX_DISTANCE_KM)
-//  true  -> aucun chapitre / erreur
 
 function updateResultCard(
   chapter,
@@ -850,7 +859,7 @@ function findDepartmentForPoint(lat, lon) {
 }
 
 //----------------------------------------
-// LOGIQUE GLOBAL : MEILLEUR CHAPITRE PAR TEMPS (fallback)
+// LOGIQUE GLOBAL : MEILLEUR CHAPITRE PAR TEMPS
 //----------------------------------------
 
 async function findBestChapter(lat, lon) {
@@ -905,7 +914,7 @@ async function findBestChapter(lat, lon) {
 }
 
 //----------------------------------------
-// RECHERCHE PAR VILLE
+// RECHERCHES
 //----------------------------------------
 
 async function handleZoneSearchForDept(dept, lat, lon, label) {
@@ -927,7 +936,6 @@ async function handleZoneSearchForDept(dept, lat, lon, label) {
     return handleGlobalSearch(lat, lon, label);
   }
 
-  // choisir en priorité sur le temps, sinon sur la distance
   let best = null;
   for (const info of infos) {
     if (info.travelMinutes != null) {
@@ -988,6 +996,18 @@ async function handleGlobalSearch(lat, lon, label) {
   );
 }
 
+async function searchFromCoordinates(lat, lon, label) {
+  setSearchMarker(lat, lon);
+  map.setView([lat, lon], 7);
+
+  const dept = findDepartmentForPoint(lat, lon);
+  if (dept && dept.responsibleChapters && dept.responsibleChapters.length > 0) {
+    await handleZoneSearchForDept(dept, lat, lon, label);
+  } else {
+    await handleGlobalSearch(lat, lon, label);
+  }
+}
+
 async function searchCity() {
   const input = document.getElementById("city-search");
   const query = input.value.trim();
@@ -999,15 +1019,7 @@ async function searchCity() {
     return;
   }
 
-  setSearchMarker(coords.lat, coords.lon);
-  map.setView([coords.lat, coords.lon], 7);
-
-  const dept = findDepartmentForPoint(coords.lat, coords.lon);
-  if (dept && dept.responsibleChapters && dept.responsibleChapters.length > 0) {
-    await handleZoneSearchForDept(dept, coords.lat, coords.lon, query);
-  } else {
-    await handleGlobalSearch(coords.lat, coords.lon, query);
-  }
+  await searchFromCoordinates(coords.lat, coords.lon, query);
 }
 
 //----------------------------------------
@@ -1106,14 +1118,18 @@ if (searchInput && suggestionsBox) {
   });
 }
 
-// toggle liste chapitres
+// toggle liste chapitres (masquée au départ)
 const chaptersListEl = document.getElementById("chapters-list");
 const chaptersToggleBtn = document.getElementById("toggle-chapters");
 if (chaptersListEl && chaptersToggleBtn) {
+  chaptersListEl.classList.add("collapsed");
+  chaptersToggleBtn.textContent = "Afficher";
+  chaptersToggleBtn.setAttribute("aria-expanded", "false");
+
   chaptersToggleBtn.addEventListener("click", () => {
     const isCollapsed = chaptersListEl.classList.toggle("collapsed");
     chaptersToggleBtn.textContent = isCollapsed ? "Afficher" : "Masquer";
-    chaptersToggleBtn.setAttribute("aria-expanded", !isCollapsed);
+    chaptersToggleBtn.setAttribute("aria-expanded", String(!isCollapsed));
   });
 }
 
@@ -1139,7 +1155,6 @@ async function loadChapters() {
     const res = await fetch("chapters.json");
     let data = await res.json();
 
-    // Valeurs par défaut pour les nouveaux champs
     CHAPTERS = data.map((ch) => {
       const mode = ch.coverageMode || "distance";
       const maxD =
