@@ -1,0 +1,14 @@
+{
+  "name": "ARIOVISTOS",
+  "city": "Strasbourg",
+  "coverageMode": "departments",
+  "maxDistanceKm": 150,
+  "departments": ["67", "68"],
+  "contactPhone": "",
+  "contactEmail": "",
+  "facebook": "https://www.facebook.com/...",
+  "instagram": "",
+  "helpInfo": "",
+  "lat": 48.5734053,
+  "lon": 7.7521113
+}
