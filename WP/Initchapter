@@ -1,0 +1,39 @@
+async function initChapters() {
+  // 1) Géocoder en parallèle uniquement les chapitres qui n'ont pas encore lat/lon
+  const geocodePromises = CHAPTERS.map(async (chapter) => {
+    // Si lat/lon déjà présents dans chapters.json, on ne touche à rien
+    if (typeof chapter.lat === "number" && typeof chapter.lon === "number") {
+      return;
+    }
+
+    const coords = await geocodeCity(chapter.city);
+    if (coords) {
+      chapter.lat = coords.lat;
+      chapter.lon = coords.lon;
+    } else {
+      console.warn("Impossible de géocoder :", chapter.city);
+    }
+  });
+
+  // On attend que tous les géocodages soient terminés
+  await Promise.all(geocodePromises);
+
+  // 2) On pose les marqueurs pour tous les chapitres qui ont des coords
+  CHAPTERS.forEach((chapter, idx) => {
+    if (typeof chapter.lat !== "number" || typeof chapter.lon !== "number") {
+      return;
+    }
+
+    const color = COLORS[idx % COLORS.length];
+
+    L.circleMarker([chapter.lat, chapter.lon], {
+      radius: 7,
+      color: "#000000",
+      weight: 2,
+      fillColor: color,
+      fillOpacity: 1
+    })
+      .bindPopup(`<b>${chapter.name}</b><br>${chapter.city}`)
+      .addTo(map);
+  });
+}
