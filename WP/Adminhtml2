@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin – Carte Lag Spirit</title>
+  <style>
+    body {
+      background: #111;
+      color: #f5f5f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #d4af37;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+
+    .admin-layout {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .admin-sidebar {
+      width: 260px;
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .admin-editor {
+      flex: 1;
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-header h2 {
+      font-size: 0.95rem;
+      margin: 0;
+      color: #e7c865;
+    }
+
+    button {
+      cursor: pointer;
+      border-radius: 999px;
+      border: 1px solid #555;
+      background: #222;
+      color: #f5f5f5;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+    }
+
+    button:hover {
+      background: #333;
+    }
+
+    .primary-btn {
+      border-color: #d4af37;
+      background: #d4af37;
+      color: #111;
+    }
+
+    .primary-btn:hover {
+      background: #b8932b;
+    }
+
+    .danger-btn {
+      border-color: #ff5555;
+      color: #ffdddd;
+      background: #400;
+    }
+
+    .danger-btn:hover {
+      background: #600;
+    }
+
+    #chapters-list {
+      margin: 0;
+      margin-top: 8px;
+      padding: 0;
+      list-style: none;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .chapter-item-btn {
+      width: 100%;
+      text-align: left;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #202020;
+      color: #eee;
+      padding: 4px 8px;
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chapter-item-btn span.name {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .chapter-item-btn.active {
+      border-color: #d4af37;
+      background: #2a2415;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      margin-top: 6px;
+      min-height: 1em;
+    }
+
+    .status.ok {
+      color: #8fd18f;
+    }
+
+    .status.err {
+      color: #ff8080;
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #editor-title {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #e7c865;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      font-size: 0.8rem;
+    }
+
+    .editor-grid label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 2px;
+      color: #ddd;
+    }
+
+    .editor-grid input,
+    .editor-grid select,
+    .editor-grid textarea {
+      width: 100%;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #111;
+      color: #f5f5f5;
+      font-size: 0.8rem;
+    }
+
+    .editor-grid textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .buttons-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .admin-layout {
+        flex-direction: column;
+      }
+      .admin-sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin – Carte Lag Spirit</h1>
+  <p class="subtitle">
+    Modifie ici la liste des chapitres et leurs paramètres.  
+    Les changements ne sont appliqués à la carte qu’après sauvegarde du fichier <code>chapters.json</code>.
+  </p>
+
+  <div class="admin-layout">
+    <!-- COLONNE GAUCHE : LISTE -->
+    <div class="admin-sidebar">
+      <div class="sidebar-header">
+        <h2>Chapitres</h2>
+        <button id="add-chapter-btn" class="primary-btn">➕ Ajouter</button>
+      </div>
+
+      <ul id="chapters-list"></ul>
+
+      <button id="reload-chapters-btn" style="margin-top:8px;">🔄 Recharger depuis le fichier</button>
+      <button id="save-chapters-btn" class="primary-btn" style="margin-top:4px;">
+        💾 Sauvegarder chapters.json
+      </button>
+
+      <p id="save-status" class="status"></p>
+    </div>
+
+    <!-- COLONNE DROITE : ÉDITION -->
+    <div class="admin-editor">
+      <div class="editor-header">
+        <h2 id="editor-title">Aucun chapitre sélectionné</h2>
+        <button id="delete-chapter-btn" class="danger-btn" disabled>🗑 Supprimer ce chapitre</button>
+      </div>
+
+      <div id="editor-form" class="editor-grid">
+        <div>
+          <label for="field-name">Nom du chapitre</label>
+          <input id="field-name" type="text" placeholder="Ex : ARIOVISTOS">
+        </div>
+
+        <div>
+          <label for="field-city">Ville</label>
+          <input id="field-city" type="text" placeholder="Ex : Strasbourg">
+        </div>
+
+        <div>
+          <label for="field-coverage-mode">Mode de couverture</label>
+          <select id="field-coverage-mode">
+            <option value="distance">Distance (km)</option>
+            <option value="departments">Départements</option>
+            <option value="both">Distance + Départements</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="field-max-distance">Distance max (km)</label>
+          <input id="field-max-distance" type="number" min="0" step="10" placeholder="150">
+        </div>
+
+        <div class="full-width">
+          <label for="field-departments">Départements (codes séparés par des virgules)</label>
+          <input id="field-departments" type="text" placeholder="Ex : 67,68,34">
+        </div>
+
+        <div>
+          <label for="field-phone">Téléphone</label>
+          <input id="field-phone" type="text" placeholder="">
+        </div>
+
+        <div>
+          <label for="field-email">Email</label>
+          <input id="field-email" type="email" placeholder="">
+        </div>
+
+        <div>
+          <label for="field-facebook">Facebook (URL)</label>
+          <input id="field-facebook" type="text" placeholder="https://www.facebook.com/...">
+        </div>
+
+        <div>
+          <label for="field-instagram">Instagram (URL)</label>
+          <input id="field-instagram" type="text" placeholder="https://www.instagram.com/...">
+        </div>
+
+        <div class="full-width">
+          <label for="field-help-info">Texte d’aide spécifique (optionnel)</label>
+          <textarea id="field-help-info" placeholder="Message spécifique pour ce chapitre."></textarea>
+        </div>
+      </div>
+
+      <div class="buttons-row">
+        <button id="save-current-btn" class="primary-btn">
+          💾 Enregistrer les modifications du chapitre (en mémoire)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="admincarte.js"></script>
+</body>
+</html>
