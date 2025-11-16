@@ -212,8 +212,8 @@
 <body>
   <h1>Admin – Carte Lag Spirit</h1>
   <p class="subtitle">
-    Modifie ici la liste des chapitres et leurs paramètres.  
-    Les changements ne sont appliqués à la carte qu’après sauvegarde du fichier <code>chapters.json</code>.
+    Modifie ici la liste des chapitres et leurs paramètres.<br>
+    Les coordonnées GPS (lat / lon) sont utilisées pour accélérer l’affichage de la carte.
   </p>
 
   <div class="admin-layout">
@@ -291,6 +291,16 @@
           <input id="field-instagram" type="text" placeholder="https://www.instagram.com/...">
         </div>
 
+        <div>
+          <label for="field-lat">Latitude (optionnel)</label>
+          <input id="field-lat" type="text" placeholder="Ex : 48.5734">
+        </div>
+
+        <div>
+          <label for="field-lon">Longitude (optionnel)</label>
+          <input id="field-lon" type="text" placeholder="Ex : 7.7521">
+        </div>
+
         <div class="full-width">
           <label for="field-help-info">Texte d’aide spécifique (optionnel)</label>
           <textarea id="field-help-info" placeholder="Message spécifique pour ce chapitre."></textarea>
@@ -298,6 +308,9 @@
       </div>
 
       <div class="buttons-row">
+        <button id="geocode-current-btn">
+          📍 Calculer les coordonnées à partir de la ville
+        </button>
         <button id="save-current-btn" class="primary-btn">
           💾 Enregistrer les modifications du chapitre (en mémoire)
         </button>
