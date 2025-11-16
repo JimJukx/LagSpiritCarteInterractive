@@ -2,361 +2,119 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin – Chapitres Lag Spirit</title>
+  <title>Lag Spirit – Aide Harcèlement & Carte des Chapitres</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-      --lag-black: #000000;
-      --lag-white: #ffffff;
-      --lag-gold: #d4af37;
-      --lag-gold-soft: #e7c865;
-    }
 
-    * { box-sizing: border-box; }
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #111;
-      color: #f5f5f5;
-    }
-
-    header {
-      padding: 0.75rem 1rem;
-      background: #000;
-      border-bottom: 2px solid var(--lag-gold);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    header span {
-      font-size: 0.8rem;
-      opacity: 0.8;
-    }
-
-    main {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      padding: 1rem;
-    }
-
-    .panel {
-      background: #181818;
-      border-radius: 0.75rem;
-      border: 1px solid #333;
-      padding: 0.75rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
-
-    .panel h2 {
-      margin: 0 0 0.5rem 0;
-      font-size: 0.95rem;
-      color: var(--lag-gold-soft);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    #chapters-list-panel {
-      flex: 1 1 260px;
-      min-width: 240px;
-      max-width: 420px;
-      max-height: calc(100vh - 120px);
-      overflow: auto;
-    }
-
-    #editor-panel {
-      flex: 2 1 320px;
-      min-width: 260px;
-      max-height: calc(100vh - 120px);
-      overflow: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-
-    th, td {
-      padding: 0.25rem 0.35rem;
-      border-bottom: 1px solid #333;
-      text-align: left;
-    }
-
-    th {
-      position: sticky;
-      top: 0;
-      background: #111;
-      z-index: 1;
-    }
-
-    tr {
-      cursor: pointer;
-    }
-
-    tr:hover {
-      background: #222;
-    }
-
-    tr.selected {
-      background: #333;
-    }
-
-    .btn-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border-radius: 999px;
-      border: 1px solid var(--lag-gold);
-      background: var(--lag-gold);
-      color: #000;
-      padding: 0.25rem 0.8rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    button.secondary {
-      background: transparent;
-      color: var(--lag-gold-soft);
-    }
-
-    button.danger {
-      border-color: #ff4b4b;
-      color: #ffb3b3;
-      background: transparent;
-    }
-
-    button:hover {
-      background: #000;
-      color: var(--lag-gold-soft);
-    }
-
-    button.danger:hover {
-      background: #ff4b4b;
-      color: #000;
-    }
-
-    form {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem 0.75rem;
-      font-size: 0.85rem;
-    }
-
-    form .full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.15rem;
-      font-size: 0.8rem;
-      opacity: 0.85;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 0.3rem 0.4rem;
-      border-radius: 0.4rem;
-      border: 1px solid #444;
-      background: #101010;
-      color: #f5f5f5;
-      font-size: 0.85rem;
-    }
-
-    textarea {
-      min-height: 70px;
-      resize: vertical;
-    }
-
-    #json-output {
-      width: 100%;
-      min-height: 140px;
-      background: #000;
-      color: #eee;
-      border-radius: 0.5rem;
-      border: 1px solid #333;
-      padding: 0.5rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.78rem;
-      overflow: auto;
-    }
-
-    .hint {
-      font-size: 0.75rem;
-      opacity: 0.8;
-      margin-top: 0.2rem;
-    }
-
-    /* Suggestions de ville dans l'admin */
-    .city-suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #111;
-      border: 1px solid #444;
-      border-radius: 0.5rem;
-      margin-top: 0.15rem;
-      max-height: 180px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-    }
-
-    .city-suggestion-item {
-      padding: 0.3rem 0.6rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-
-    .city-suggestion-item:hover {
-      background: #222;
-    }
-
-    @media (max-width: 800px) {
-      main {
-        flex-direction: column;
-      }
-      #chapters-list-panel,
-      #editor-panel {
-        max-height: none;
-      }
-    }
-  </style>
+  <!-- Ton CSS -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
-  <header>
-    <h1>Admin – Chapitres Lag Spirit</h1>
-    <span>Outil interne&nbsp;: édition de <code>chapters.json</code></span>
-  </header>
 
-  <main>
-    <section id="chapters-list-panel" class="panel">
-      <h2>Liste des chapitres</h2>
-      <div class="btn-row">
-        <button id="new-chapter-btn">Nouveau chapitre</button>
-        <button id="duplicate-chapter-btn" class="secondary">Dupliquer</button>
-        <button id="delete-chapter-btn" class="danger">Supprimer</button>
-      </div>
-      <table id="chapters-table">
-        <thead>
-          <tr>
-            <th>Nom</th>
-            <th>Ville</th>
-            <th>Mode</th>
-            <th>Km</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- lignes générées en JS -->
-        </tbody>
-      </table>
-    </section>
+<header>
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
+    </div>
+    <div>
+      <h1>Lag Spirit – Carte des Chapitres</h1>
+      <div class="subtitle">Soutiens aux victimes de harcèlement scolaire</div>
+    </div>
+  </div>
 
-    <section id="editor-panel" class="panel">
-      <h2>Édition d’un chapitre</h2>
-      <form id="chapter-form">
-        <input type="hidden" id="field-id" />
+  <div class="search-area">
+    <div class="search-input-wrapper">
+      <input
+        id="city-search"
+        type="text"
+        placeholder="Tape ta ville (ex : Lyon, Brest...)"
+        autocomplete="off"
+      />
+      <div id="search-suggestions" class="search-suggestions"></div>
+    </div>
+    <button id="search-btn">Trouve le chapitre le plus proche</button>
+    <button id="locate-btn">Me localiser</button>
+  </div>
+</header>
 
-        <div class="full">
-          <label for="field-name">Nom du chapitre</label>
-          <input type="text" id="field-name" required />
-        </div>
+<!-- Bandeau d'accueil -->
+<div class="welcome-banner">
+  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+</div>
 
-        <div class="full" style="position:relative;">
-          <label for="field-city">Ville</label>
-          <input
-            type="text"
-            id="field-city"
-            required
-            autocomplete="off"
-            placeholder="Commence à taper et choisis dans la liste"
-          />
-          <div id="city-suggestions" class="city-suggestions"></div>
-        </div>
+<main>
+  <div id="map"></div>
 
-        <div>
-          <label for="field-mode">Mode de couverture</label>
-          <select id="field-mode">
-            <option value="distance">distance</option>
-            <option value="departments">departments</option>
-            <option value="both">both</option>
-          </select>
-        </div>
+  <aside class="sidebar">
+    <h2>Besoin d’aide&nbsp;?</h2>
+    <p class="info-text">
+      Entre ta ville ou clique sur une zone de la carte.
+      Si la distance est trop importante, il peut être difficile pour un chapitre
+      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
+      et t’apporter des conseils.
+    </p>
 
-        <div>
-          <label for="field-maxdist">Distance max (km)</label>
-          <input type="number" id="field-maxdist" min="0" step="10" />
-        </div>
-
-        <div class="full">
-          <label for="field-depts">Départements couverts (codes séparés par des virgules)</label>
-          <input type="text" id="field-depts" placeholder="33, 34, 84" />
-        </div>
-
-        <div>
-          <label for="field-email">Email</label>
-          <input type="email" id="field-email" placeholder="exemple@mail.com" />
-        </div>
-
-        <div>
-          <label for="field-phone">Téléphone</label>
-          <input type="text" id="field-phone" placeholder="06..." />
-        </div>
-
-        <div>
-          <label for="field-facebook">Facebook</label>
-          <input type="text" id="field-facebook" placeholder="URL complète" />
-        </div>
-
-        <div>
-          <label for="field-instagram">Instagram</label>
-          <input type="text" id="field-instagram" placeholder="URL complète" />
-        </div>
-
-        <div class="full">
-          <label for="field-help">Message d’aide spécifique (optionnel)</label>
-          <textarea id="field-help"></textarea>
-        </div>
-
-        <div class="full btn-row">
-          <button type="submit">Enregistrer dans la liste</button>
-          <button type="button" id="reset-form-btn" class="secondary">Réinitialiser le formulaire</button>
-        </div>
-      </form>
-
-      <h2 style="margin-top:1rem;">chapters.json généré</h2>
-      <p class="hint">
-        Copie/colle ce contenu dans ton fichier <code>chapters.json</code>, ou clique sur “Télécharger”.
+    <div id="result-card" class="chapter-card">
+      <div class="chapter-tag">Chapitre sélectionné</div>
+      <h3>Aucun chapitre affiché</h3>
+      <p>
+        Entre une ville ou clique sur une zone de la carte pour afficher
+        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
       </p>
-      <textarea id="json-output" readonly></textarea>
-      <div class="btn-row" style="margin-top:0.5rem;">
-        <button id="download-json-btn">Télécharger chapters.json</button>
-      </div>
-    </section>
-  </main>
+    </div>
 
-  <script src="js/admin.js"></script>
+    <div class="chapters-list-wrapper">
+      <div class="chapters-list-header">
+        <div class="chapters-list-title">Chapitres Lag Spirit</div>
+        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="true">
+          Masquer
+        </button>
+      </div>
+      <div id="chapters-list" class="chapters-list"></div>
+    </div>
+
+    <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
+
+    <!-- Bloc info important sous la devise -->
+    <div class="legal-info">
+      <p>
+        Le <strong>Lag Spirit MC</strong> compte parmi ses membres des
+        professionnels issus des forces de l’ordre. Cependant, dans le cadre
+        de nos actions, ces membres interviennent strictement en qualité de
+        <strong>bénévoles associatifs</strong>. Nos interventions ne se
+        substituent en aucun cas aux services d’urgence, aux autorités
+        judiciaires ou aux professionnels de santé.
+      </p>
+      <p>
+        En cas de danger, de menace ou de situation nécessitant une intervention
+        officielle, utilisez les <strong>numéros d’urgence</strong>.
+      </p>
+      <button id="emergency-toggle" class="emergency-btn">
+        Afficher les numéros d’urgence
+      </button>
+      <div id="emergency-numbers" class="emergency-numbers">
+        <p class="legal-numbers">
+          <strong>17</strong> – Police / Gendarmerie<br />
+          <strong>15</strong> – SAMU (urgence médicale)<br />
+          <strong>18</strong> – Pompiers<br />
+          <strong>112</strong> – Numéro d’urgence européen<br />
+          <strong>119</strong> – Enfance en danger<br />
+          <strong>3018</strong> – Harcèlement et cyberharcèlement<br />
+        </p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- JS -->
+<script src="js/app.js"></script>
+
 </body>
 </html>
