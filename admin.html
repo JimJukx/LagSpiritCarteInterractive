@@ -49,20 +49,41 @@
       color: white;
     }
 
-    button {
+    .buttons-row {
+      display: flex;
+      gap: 0.5rem;
       margin-top: 1rem;
+    }
+
+    button {
       padding: 0.6rem 1rem;
       border-radius: 5px;
       border: none;
       cursor: pointer;
       font-weight: bold;
-      background: #d4af37;
-      color: black;
-      width: 100%;
     }
 
-    button:hover {
+    #save-btn {
+      background: #d4af37;
+      color: black;
+      flex: 1;
+    }
+
+    #save-btn:hover {
       background: #b8962f;
+    }
+
+    #cancel-edit-btn {
+      background: #444;
+      color: #f0f0f0;
+      flex: 0 0 auto;
+      padding-inline: 0.8rem;
+      font-size: 0.85rem;
+      display: none; /* caché par défaut */
+    }
+
+    #cancel-edit-btn:hover {
+      background: #666;
     }
 
     .chapter-list {
@@ -139,7 +160,6 @@
       opacity: 0.8;
       margin-top: 0.3rem;
     }
-
   </style>
 </head>
 
@@ -169,7 +189,9 @@
 
   <label>Liste des départements (séparés par des virgules)</label>
   <input id="deps" type="text" placeholder="Ex : 67,68" />
-  <div class="info-note">Laisse vide si le chapitre ne couvre pas de département précis.</div>
+  <div class="info-note">
+    Laisse vide si le chapitre ne couvre pas de département précis.
+  </div>
 
   <label>Email</label>
   <input id="email" type="email" placeholder="exemple@domaine.fr" />
@@ -183,13 +205,18 @@
   <label>Instagram</label>
   <input id="instagram" type="text" placeholder="URL du profil Instagram" />
 
-  <button id="save-btn" onclick="addOrUpdateChapter()">Ajouter ce chapitre</button>
+  <div class="buttons-row">
+    <button id="save-btn" onclick="addOrUpdateChapter()">Ajouter ce chapitre</button>
+    <button id="cancel-edit-btn" type="button" onclick="resetForm()">Annuler la modification</button>
+  </div>
 
   <h2>Chapitres existants</h2>
   <div id="chapters-list" class="chapter-list"></div>
 
   <h2>Fichier JSON généré (chapters.json)</h2>
-  <p class="info-note">Copie-colle ce contenu dans ton fichier <strong>chapters.json</strong>.</p>
+  <p class="info-note">
+    Copie-colle ce contenu dans ton fichier <strong>chapters.json</strong>.
+  </p>
   <pre id="output">{}</pre>
 
 </div>
@@ -210,7 +237,7 @@ async function loadChapters() {
   }
 }
 
-/* Réinitialiser formulaire */
+/* Réinitialiser formulaire et repasser en mode "ajout" */
 function resetForm() {
   editingIndex = null;
   document.getElementById("name").value = "";
@@ -222,7 +249,11 @@ function resetForm() {
   document.getElementById("phone").value = "";
   document.getElementById("facebook").value = "";
   document.getElementById("instagram").value = "";
-  document.getElementById("save-btn").textContent = "Ajouter ce chapitre";
+
+  const saveBtn = document.getElementById("save-btn");
+  const cancelBtn = document.getElementById("cancel-edit-btn");
+  saveBtn.textContent = "Ajouter ce chapitre";
+  if (cancelBtn) cancelBtn.style.display = "none";
 }
 
 /* Ajouter / mettre à jour un chapitre */
@@ -276,17 +307,23 @@ function editChapter(index) {
 
   editingIndex = index;
 
-  document.getElementById("name").value = ch.name;
-  document.getElementById("city").value = ch.city;
-  document.getElementById("mode").value = ch.coverageMode;
-  document.getElementById("distance").value = ch.maxDistanceKm;
-  document.getElementById("deps").value = ch.departments.join(",");
+  document.getElementById("name").value = ch.name || "";
+  document.getElementById("city").value = ch.city || "";
+  document.getElementById("mode").value = ch.coverageMode || "distance";
+  document.getElementById("distance").value =
+    typeof ch.maxDistanceKm === "number" ? ch.maxDistanceKm : 150;
+  document.getElementById("deps").value = Array.isArray(ch.departments)
+    ? ch.departments.join(",")
+    : "";
   document.getElementById("email").value = ch.contactEmail || "";
   document.getElementById("phone").value = ch.contactPhone || "";
   document.getElementById("facebook").value = ch.facebook || "";
   document.getElementById("instagram").value = ch.instagram || "";
 
-  document.getElementById("save-btn").textContent = "Mettre à jour ce chapitre";
+  const saveBtn = document.getElementById("save-btn");
+  const cancelBtn = document.getElementById("cancel-edit-btn");
+  saveBtn.textContent = "Mettre à jour ce chapitre";
+  if (cancelBtn) cancelBtn.style.display = "inline-block";
 }
 
 /* Supprimer un chapitre */
@@ -295,7 +332,13 @@ function deleteChapter(index) {
   chapters.splice(index, 1);
   refreshList();
   updateOutput();
-  resetForm();
+
+  // si on supprimait celui en cours d'édition, on réinitialise
+  if (editingIndex === index) {
+    resetForm();
+  } else if (editingIndex !== null && editingIndex > index) {
+    editingIndex--; // on décale l'index si nécessaire
+  }
 }
 
 /* Afficher la liste */
