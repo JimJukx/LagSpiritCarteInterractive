@@ -55,43 +55,15 @@ function lagspirit_carte_register_assets() {
         'lagspirit-carte-script',
         'lagspiritCarteData',
         [
-            'assetsBaseUrl' => LAGSPIRIT_CARTE_URL . 'assets/',
-            'jsonUrl'       => LAGSPIRIT_CARTE_URL . 'assets/chapters.json',
-            // URL de la page d'admin WordPress (ouverte après validation du code)
-            'admin_url'     => admin_url('options-general.php?page=lagspirit-carte-admin'),
+            'assetsBaseUrl'  => LAGSPIRIT_CARTE_URL . 'assets/',
+            'jsonUrl'        => LAGSPIRIT_CARTE_URL . 'assets/chapters.json',
+            // Pour l'accès admin caché (double-clic roue crantée)
+            'adminPageUrl'   => LAGSPIRIT_CARTE_URL . 'assets/admin/admincarte.html',
+            'adminSecretUrl' => LAGSPIRIT_CARTE_URL . 'assets/admin/admincarte-secret.json',
         ]
     );
 }
 add_action('wp_enqueue_scripts', 'lagspirit_carte_register_assets');
-
-
-/* -----------------------------------------------------------
-   PAGE ADMIN (BACK-OFFICE WP, NON PUBLIQUE)
------------------------------------------------------------ */
-function lagspirit_carte_add_admin_page() {
-    add_options_page(
-        'Lag Spirit – Admin Carte',
-        'Lag Spirit Carte',
-        'manage_options',
-        'lagspirit-carte-admin',
-        'lagspirit_carte_render_admin_page'
-    );
-}
-add_action('admin_menu', 'lagspirit_carte_add_admin_page');
-
-function lagspirit_carte_render_admin_page() {
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-    ?>
-    <div class="wrap">
-        <h1>Lag Spirit – Gestion de la carte</h1>
-        <p>
-            Page réservée aux responsables Lag Spirit pour gérer la carte.
-        </p>
-    </div>
-    <?php
-}
 
 
 /* -----------------------------------------------------------
