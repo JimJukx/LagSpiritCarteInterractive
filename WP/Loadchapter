@@ -1,0 +1,44 @@
+// ----------------------------------------
+// CHARGEMENT GLOBAL (chapters.json)
+// ----------------------------------------
+async function loadChapters() {
+  try {
+    const res = await fetch(
+      "/wp-content/plugins/lagspirit-carte/assets/chapters.json"
+    );
+
+    let data = await res.json();
+
+    CHAPTERS = data.map((ch) => {
+      const mode = ch.coverageMode || "distance";
+      const maxD =
+        typeof ch.maxDistanceKm === "number"
+          ? ch.maxDistanceKm
+          : MAX_DISTANCE_KM;
+      const depts = Array.isArray(ch.departments) ? ch.departments : [];
+
+      // On force lat/lon en nombres si présents
+      const lat =
+        ch.lat !== undefined && ch.lat !== null ? Number(ch.lat) : undefined;
+      const lon =
+        ch.lon !== undefined && ch.lon !== null ? Number(ch.lon) : undefined;
+
+      return {
+        ...ch,
+        coverageMode: mode,
+        maxDistanceKm: maxD,
+        departments: depts,
+        lat,
+        lon,
+      };
+    });
+
+    initChapters();        // plus besoin d’await, ce n'est plus async
+    renderChaptersList();
+    await loadDepartments();
+
+  } catch (e) {
+    console.error("Erreur de chargement de chapters.json", e);
+    alert("Impossible de charger la liste des chapitres (chapters.json).");
+  }
+}
