@@ -1,3 +1,7 @@
+/* =========================================
+   PALETTE & VARIABLES LAG SPIRIT
+========================================= */
+
 :root {
   --lag-black: #000000;
   --lag-white: #ffffff;
@@ -5,8 +9,16 @@
   --lag-gold-soft: #e7c865;
 }
 
+/* =========================================
+   RESET & BASE
+========================================= */
+
 * {
   box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
 }
 
 body {
@@ -14,12 +26,14 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   background: #111;
   color: var(--lag-white);
 }
 
-/* HEADER */
+/* =========================================
+   HEADER
+========================================= */
 
 header {
   padding: 0.4rem 0.9rem;
@@ -55,7 +69,6 @@ header {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  display: block;
 }
 
 header h1 {
@@ -70,7 +83,22 @@ header .subtitle {
   opacity: 0.9;
 }
 
-/* SEARCH */
+/* =========================================
+   WELCOME BANNER
+========================================= */
+
+.welcome-banner {
+  padding: 0.4rem 0.9rem;
+  background: #181818;
+  border-bottom: 1px solid #333;
+  font-size: 0.8rem;
+  color: #f0f0f0;
+  text-align: left;
+}
+
+/* =========================================
+   SEARCH AREA
+========================================= */
 
 .search-area {
   margin-left: auto;
@@ -80,6 +108,7 @@ header .subtitle {
   align-items: center;
 }
 
+/* wrapper pour l'auto-complétion */
 .search-input-wrapper {
   position: relative;
   flex: 1 1 auto;
@@ -87,10 +116,11 @@ header .subtitle {
 }
 
 .search-area input {
-  width: 100%;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   border: 1px solid #444;
+  min-width: 180px;
+  width: 100%;
   background: #111;
   color: #f5f5f5;
   font-size: 0.85rem;
@@ -119,13 +149,7 @@ header .subtitle {
   color: var(--lag-gold);
 }
 
-.secondary-btn {
-  background: transparent !important;
-  color: var(--lag-gold-soft) !important;
-}
-
-/* Suggestions sous le champ de recherche */
-
+/* Liste des suggestions de ville (auto-complétion carte) */
 .search-suggestions {
   position: absolute;
   left: 0;
@@ -150,7 +174,9 @@ header .subtitle {
   background: #222;
 }
 
-/* LAYOUT GLOBAL */
+/* =========================================
+   PAGE LAYOUT
+========================================= */
 
 main {
   display: flex;
@@ -161,6 +187,7 @@ main {
 #map {
   flex: 2;
   height: 100%;
+  min-height: 300px;
   position: relative;
 }
 
@@ -168,13 +195,15 @@ main {
   background: #101010;
 }
 
-/* SIDEBAR */
+/* =========================================
+   SIDEBAR
+========================================= */
 
 .sidebar {
   flex: 1;
   max-width: 380px;
   border-left: 1px solid #333;
-  padding: 0.75rem 0.9rem;
+  padding: 0.75rem 0.9rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -193,7 +222,9 @@ main {
   color: #d0d0d0;
 }
 
-/* RESULT CARD */
+/* =========================================
+   RESULT CARD
+========================================= */
 
 .chapter-card {
   margin-top: 0.5rem;
@@ -246,7 +277,18 @@ main {
   text-decoration: underline;
 }
 
-/* LISTE DES CHAPITRES */
+.help-highlight {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.6rem;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  font-size: 0.8rem;
+}
+
+/* =========================================
+   LISTE DES CHAPITRES (COMPACTE + TOGGLE)
+========================================= */
 
 .chapters-list-wrapper {
   margin-top: 0.75rem;
@@ -254,20 +296,47 @@ main {
   border-top: 1px solid #333;
 }
 
+.chapters-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
 .chapters-list-title {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #cccccc;
-  margin-bottom: 0.25rem;
+}
+
+.chapters-toggle-btn {
+  border-radius: 999px;
+  border: 1px solid #444;
+  background: #181818;
+  color: #ddd;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.55rem;
+  cursor: pointer;
+}
+
+.chapters-toggle-btn:hover {
+  border-color: var(--lag-gold-soft);
+  color: var(--lag-gold-soft);
+  background: #202020;
 }
 
 .chapters-list {
-  max-height: 180px;
+  max-height: 120px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+}
+
+.chapters-list.collapsed {
+  display: none;
 }
 
 .chapter-list-item {
@@ -275,12 +344,12 @@ main {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.4rem;
+  gap: 0.35rem;
   background: #181818;
   border: 1px solid #333;
   border-radius: 999px;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
   color: #eee;
   cursor: pointer;
 }
@@ -293,13 +362,13 @@ main {
 .chapter-list-main {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   overflow: hidden;
 }
 
 .chapter-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -308,80 +377,85 @@ main {
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  max-width: 220px;
+  max-width: 190px;
 }
 
-/* MOTTO */
+/* =========================================
+   DEVISE + BLOC INFO
+========================================= */
 
 .motto {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   text-align: center;
-  margin-top: 0.75rem;
+  margin-top: 0.9rem;
   color: var(--lag-gold-soft);
   font-weight: 600;
 }
 
-/* EMERGENCY PANEL */
-
-.emergency-panel {
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
-  color: #e0e0e0;
+/* Bloc légal allégé, plus petit */
+.legal-info {
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.6rem;
+  background: #181818;
+  border: 1px solid #333;
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 
-.emergency-intro {
-  margin: 0 0 0.4rem 0;
+.legal-info p {
+  margin: 0.2rem 0;
 }
 
+.legal-info strong {
+  color: var(--lag-gold-soft);
+}
+
+/* bouton numéros d'urgence */
 .emergency-btn {
-  margin-top: 0.25rem;
-  padding: 0.3rem 0.7rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 999px;
-  border: 1px solid var(--lag-gold);
-  background: transparent;
+  border: 1px solid var(--lag-gold-soft);
+  background: #111;
   color: var(--lag-gold-soft);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.7rem;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .emergency-btn:hover {
-  background: var(--lag-gold);
-  color: #000;
+  background: var(--lag-gold-soft);
+  color: #111;
 }
 
+/* bloc des numéros caché/affiché */
 .emergency-numbers {
-  margin-top: 0.35rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 0.6rem;
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.6);
-  font-size: 0.78rem;
   display: none;
+  margin-top: 0.35rem;
 }
 
 .legal-numbers {
-  margin: 0;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
 }
 
-/* RESPONSIVE */
+/* =========================================
+   MOBILE
+========================================= */
 
 @media (max-width: 800px) {
   main {
     flex-direction: column;
   }
 
+  #map {
+    height: 50vh;
+  }
+
   .sidebar {
     max-width: none;
     border-left: none;
     border-top: 1px solid #333;
-    height: 48vh;
-  }
-
-  #map {
-    height: 52vh;
   }
 
   header {
@@ -392,5 +466,9 @@ main {
     width: 100%;
     margin-left: 0;
     justify-content: flex-start;
+  }
+
+  .chapters-list {
+    max-height: 100px;
   }
 }
