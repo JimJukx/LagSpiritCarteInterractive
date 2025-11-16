@@ -1,49 +1,53 @@
 // === Accès admin via double-clic sur ⚙️ ===
 document.addEventListener("DOMContentLoaded", () => {
-  const adminBtn = document.getElementById("admin-carte-btn");
-  const popup = document.getElementById("admin-popup");
-  const passInput = document.getElementById("admin-pass-input");
-  const passBtn = document.getElementById("admin-pass-validate");
-  const passError = document.getElementById("admin-pass-error");
+  const adminBtn   = document.getElementById("admin-carte-btn");
+  const popup      = document.getElementById("admin-popup");
+  const passInput  = document.getElementById("admin-pass-input");
+  const passBtn    = document.getElementById("admin-pass-validate");
+  const passError  = document.getElementById("admin-pass-error");
 
-  if (!adminBtn) return;
+  if (!adminBtn || !popup || !passInput || !passBtn || !passError) return;
 
-  let clickTimer = null;
+  // Double-clic sur la roue crantée -> ouvre le popup
+  adminBtn.addEventListener("dblclick", () => {
+    popup.style.display = "flex";
+    passInput.value = "";
+    passError.textContent = "";
+    passInput.focus();
+  });
 
-  adminBtn.addEventListener("click", () => {
-    if (clickTimer === null) {
-      clickTimer = setTimeout(() => { clickTimer = null; }, 250);
-    } else {
-      clearTimeout(clickTimer);
-      clickTimer = null;
-      popup.style.display = "flex";
-      passInput.value = "";
-      passError.textContent = "";
+  // Clic en dehors de la boite -> ferme le popup
+  popup.addEventListener("click", (e) => {
+    if (e.target === popup) {
+      popup.style.display = "none";
     }
   });
 
-  popup.addEventListener("click", (e) => {
-    if (e.target === popup) popup.style.display = "none";
-  });
-
+  // Clic sur "Valider"
   passBtn.addEventListener("click", async () => {
     const pwd = passInput.value.trim();
     if (!pwd) {
-      passError.textContent = "Merci d’entrer le mot de passe.";
+      passError.textContent = "Merci d’entrer le code.";
       return;
     }
 
     try {
-      const res = await fetch(lagspiritCarteData.assetsBaseUrl + "admin/admincarte-secret.json");
+      // admincarte-secret.json doit être dans assets/admin/
+      const res = await fetch(
+        lagspiritCarteData.assetsBaseUrl + "admin/admincarte-secret.json",
+        { cache: "no-cache" }
+      );
       const data = await res.json();
 
       if (pwd === data.password) {
+        // Code correct -> ouvre la page admin WordPress dans un nouvel onglet
         window.open(lagspiritCarteData.admin_url, "_blank");
         popup.style.display = "none";
       } else {
-        passError.textContent = "Mot de passe incorrect.";
+        passError.textContent = "Code incorrect.";
       }
-    } catch (e) {
+    } catch (err) {
+      console.error(err);
       passError.textContent = "Erreur lors de la vérification.";
     }
   });
