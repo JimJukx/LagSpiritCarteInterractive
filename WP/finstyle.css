@@ -1,0 +1,60 @@
+/* ===== Bouton admin (icône) ===== */
+.admin-icon-btn {
+  font-size: 1.2rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--lag-gold);
+  background: #111;
+  color: var(--lag-gold);
+  cursor: pointer;
+  margin-left: 0.4rem;
+}
+
+.admin-icon-btn:hover {
+  background: var(--lag-gold);
+  color: #111;
+}
+
+/* ===== Popup admin ===== */
+.admin-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.admin-popup-inner {
+  background: #181818;
+  border: 1px solid var(--lag-gold);
+  padding: 1rem;
+  width: 280px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+#admin-pass-input {
+  width: 100%;
+  padding: 0.4rem;
+  margin-top: 0.6rem;
+  background: #111;
+  border: 1px solid #555;
+  color: #fff;
+}
+
+#admin-pass-validate {
+  margin-top: 0.7rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: var(--lag-gold);
+  border: 1px solid var(--lag-gold);
+  color: #111;
+  cursor: pointer;
+}
+
+#admin-pass-error {
+  margin-top: 0.4rem;
+  color: rgb(255, 70, 70);
+}
