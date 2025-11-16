@@ -1,0 +1,8 @@
+<button id="search-btn">Trouve le chapitre le plus proche</button>
+  <button id="locate-btn">Me localiser</button>
+
+  <!-- Icône admin (double-clic pour ouvrir la page d’admin) -->
+  <button id="admin-carte-btn" class="admin-icon-btn" title="Administration">
+    ⚙️
+  </button>
+</div>
