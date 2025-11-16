@@ -969,14 +969,16 @@ loadChapters();
 // ACCÈS ADMIN (double-clic sur ⚙️)
 //----------------------------------------
 
-document.addEventListener("DOMContentLoaded", () => {
+(function () {
   const adminBtn   = document.getElementById("admin-carte-btn");
   const popup      = document.getElementById("admin-popup");
   const passInput  = document.getElementById("admin-pass-input");
   const passBtn    = document.getElementById("admin-pass-validate");
   const passError  = document.getElementById("admin-pass-error");
 
-  if (!adminBtn || !popup || !passInput || !passBtn || !passError) return;
+  if (!adminBtn || !popup || !passInput || !passBtn || !passError) {
+    return;
+  }
 
   // Double-clic sur la roue crantée -> ouvre le popup
   adminBtn.addEventListener("dblclick", () => {
@@ -1018,8 +1020,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(secretUrl, { cache: "no-cache" });
       const data = await res.json();
 
-      const real =
-        data.password || data.code || data.secret || "";
+      const real = data.password || data.code || data.secret || "";
 
       if (pwd === real) {
         // OK -> nouvel onglet admin
@@ -1033,4 +1034,4 @@ document.addEventListener("DOMContentLoaded", () => {
       passError.textContent = "Erreur lors de la vérification.";
     }
   });
-});
+})();
