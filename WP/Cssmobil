@@ -1,0 +1,87 @@
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 800px) {
+  /* Layout général : carte au-dessus, panneau en dessous */
+  main {
+    flex-direction: column;
+  }
+
+  /* Carte : hauteur raisonnable, pas plein écran */
+  #map {
+    height: 55vh;
+    min-height: 260px;
+  }
+
+  /* Sidebar 100% largeur, séparée par une ligne */
+  .sidebar {
+    max-width: none;
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #333;
+    padding: 0.75rem 0.75rem 1rem;
+  }
+
+  /* Header plus compact */
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  header h1 {
+    font-size: 0.95rem;
+  }
+
+  header .subtitle {
+    font-size: 0.78rem;
+  }
+
+  /* Zone de recherche : éléments empilés, full width */
+  .search-area {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .search-area input {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+
+  .search-area button {
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    padding: 0.45rem 0.9rem;
+  }
+
+  /* Carte + panneau respirent mieux */
+  .chapter-card {
+    margin-top: 0.6rem;
+  }
+
+  /* Liste des chapitres un peu plus compacte */
+  .chapters-list {
+    max-height: 110px;
+  }
+
+  /* Devise + bloc info : marges adaptées */
+  .motto {
+    margin-top: 0.7rem;
+    font-size: 1.05rem;
+  }
+
+  .legal-info {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+  }
+}
