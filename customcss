@@ -1,12 +1,35 @@
-/* Page carte en pleine largeur */
-.lagspirit-wrapper {
-    max-width: 1300px !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
+/* === Mise en page plein écran pour la page de la carte === */
+
+/* 1. Supprimer le titre automatique "Carte Lag Spirit" de WordPress */
+body.page .wp-block-post-title {
+  display: none !important;
 }
 
-/* Supprimer marges du thème sur cette page */
-.page-id-XX .wp-site-blocks {
-    padding: 0 !important;
-    margin: 0 !important;
+/* 2. Supprimer les marges/paddings du thème autour du contenu */
+body.page .wp-site-blocks,
+body.page main,
+body.page .wp-block-post-content,
+body.page .wp-block-group,
+body.page .wp-block-group__inner-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+/* 3. Forcer notre wrapper de carte à prendre toute la largeur */
+body.page .lagspirit-wrapper {
+  margin: 0 auto !important;
+  padding: 0 !important;
+  max-width: 1300px !important; /* tu peux mettre 100% si tu veux vraiment bord à bord */
+  box-sizing: border-box;
+}
+
+/* 4. Option : fond noir sur toute la page pour coller à ta charte */
+body.page {
+  background: #000000 !important;
+}
+
+/* 5. Corriger le fond autour si le thème ajoute une autre couche */
+body.page .wp-site-blocks > * {
+  background: transparent !important;
 }
