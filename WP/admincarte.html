@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Administration Carte Lag Spirit</title>
+    <style>
+        body {
+            background: #111;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #ffdc00;
+        }
+        #login-box, #editor-box {
+            max-width: 700px;
+            margin: 30px auto;
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        input, textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: none;
+        }
+        button {
+            background: #ffdc00;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .chapter-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>ADMINISTRATION — CARTE DES CHAPITRES</h1>
+
+<!-- Zone login -->
+<div id="login-box" style="display:block;">
+    <h2>Connexion requise</h2>
+    <p>Veuillez entrer le mot de passe :</p>
+    <input type="password" id="password-input" placeholder="Mot de passe">
+    <button onclick="checkPassword()">Valider</button>
+</div>
+
+<!-- Zone d’édition -->
+<div id="editor-box">
+    <h2>Chapitres</h2>
+    <button onclick="addChapter()">➕ Ajouter un chapitre</button>
+
+    <div id="chapters-list"></div>
+
+    <button onclick="saveChapters()">💾 Sauvegarder</button>
+</div>
+
+<script src="admincarte.js"></script>
+
+</body>
+</html>
