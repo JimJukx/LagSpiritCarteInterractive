@@ -24,6 +24,39 @@ function setVal(id, value) {
 }
 
 // -----------------------
+// GÉOCODAGE (Nominatim)
+// -----------------------
+
+async function geocodeCity(city) {
+  if (!city) return null;
+
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    city + ", France"
+  )}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "Accept-Language": "fr",
+        // petit User-Agent pour respecter la politique de Nominatim
+        "User-Agent": "LagSpiritAdmin/1.0"
+      }
+    });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error("Erreur géocodage :", e);
+    return null;
+  }
+}
+
+// -----------------------
 // CHARGEMENT / LISTE
 // -----------------------
 
@@ -40,7 +73,14 @@ async function loadChapters() {
     if (!Array.isArray(data)) {
       chapters = [];
     } else {
-      chapters = data;
+      // on force lat/lon en nombre si présents
+      chapters = data.map((ch) => {
+        const lat =
+          ch.lat !== undefined && ch.lat !== null ? Number(ch.lat) : undefined;
+        const lon =
+          ch.lon !== undefined && ch.lon !== null ? Number(ch.lon) : undefined;
+        return { ...ch, lat, lon };
+      });
     }
 
     currentIndex = chapters.length > 0 ? 0 : -1;
@@ -49,6 +89,7 @@ async function loadChapters() {
 
     if (status) {
       status.textContent = "";
+      status.className = "status";
     }
   } catch (e) {
     console.error(e);
@@ -104,6 +145,8 @@ function fillFormFromCurrent() {
     setVal("field-email", "");
     setVal("field-facebook", "");
     setVal("field-instagram", "");
+    setVal("field-lat", "");
+    setVal("field-lon", "");
     setVal("field-help-info", "");
 
     if (deleteBtn) deleteBtn.disabled = true;
@@ -118,10 +161,8 @@ function fillFormFromCurrent() {
 
   setVal("field-name", ch.name || "");
   setVal("field-city", ch.city || "");
-  setVal(
-    "field-coverage-mode",
-    ch.coverageMode || "distance"
-  );
+  setVal("field-coverage-mode", ch.coverageMode || "distance");
+
   setVal(
     "field-max-distance",
     typeof ch.maxDistanceKm === "number" ? String(ch.maxDistanceKm) : ""
@@ -136,6 +177,16 @@ function fillFormFromCurrent() {
   setVal("field-email", ch.contactEmail || "");
   setVal("field-facebook", ch.facebook || "");
   setVal("field-instagram", ch.instagram || "");
+
+  setVal(
+    "field-lat",
+    typeof ch.lat === "number" && !isNaN(ch.lat) ? String(ch.lat) : ""
+  );
+  setVal(
+    "field-lon",
+    typeof ch.lon === "number" && !isNaN(ch.lon) ? String(ch.lon) : ""
+  );
+
   setVal("field-help-info", ch.helpInfo || "");
 
   if (deleteBtn) deleteBtn.disabled = false;
@@ -175,6 +226,19 @@ function updateCurrentFromForm() {
   ch.instagram = getVal("field-instagram");
   ch.helpInfo = getVal("field-help-info");
 
+  const latStr = getVal("field-lat").replace(",", ".");
+  const lonStr = getVal("field-lon").replace(",", ".");
+  const lat = parseFloat(latStr);
+  const lon = parseFloat(lonStr);
+
+  if (!isNaN(lat) && !isNaN(lon)) {
+    ch.lat = lat;
+    ch.lon = lon;
+  } else {
+    delete ch.lat;
+    delete ch.lon;
+  }
+
   chapters[currentIndex] = ch;
   renderChaptersList(); // met à jour le nom dans la liste
 }
@@ -194,7 +258,9 @@ function addChapter() {
     contactEmail: "",
     facebook: "",
     instagram: "",
-    helpInfo: ""
+    helpInfo: "",
+    lat: undefined,
+    lon: undefined
   };
 
   chapters.push(newChapter);
@@ -259,15 +325,64 @@ async function saveChapters() {
 }
 
 // -----------------------
+// GÉOCODE DU CHAPITRE COURANT
+// -----------------------
+
+async function geocodeCurrentChapter() {
+  if (currentIndex < 0 || !chapters[currentIndex]) return;
+
+  const status = $("save-status");
+  const ch = chapters[currentIndex];
+  const city = ch.city || getVal("field-city");
+
+  if (!city) {
+    if (status) {
+      status.textContent = "❌ Impossible de géocoder : aucune ville renseignée.";
+      status.className = "status err";
+    }
+    return;
+  }
+
+  if (status) {
+    status.textContent = `📍 Géocodage en cours pour "${city}"...`;
+    status.className = "status";
+  }
+
+  const coords = await geocodeCity(city);
+  if (!coords) {
+    if (status) {
+      status.textContent = "❌ Échec du géocodage (ville introuvable ou erreur réseau).";
+      status.className = "status err";
+    }
+    return;
+  }
+
+  ch.lat = coords.lat;
+  ch.lon = coords.lon;
+  chapters[currentIndex] = ch;
+
+  setVal("field-lat", String(coords.lat));
+  setVal("field-lon", String(coords.lon));
+
+  if (status) {
+    status.textContent = "✅ Coordonnées mises à jour pour ce chapitre. Pense à sauvegarder chapters.json.";
+    status.className = "status ok";
+  }
+
+  renderChaptersList();
+}
+
+// -----------------------
 // INIT
 // -----------------------
 
 document.addEventListener("DOMContentLoaded", () => {
-  const addBtn     = $("add-chapter-btn");
-  const reloadBtn  = $("reload-chapters-btn");
-  const saveBtn    = $("save-chapters-btn");
-  const delBtn     = $("delete-chapter-btn");
+  const addBtn        = $("add-chapter-btn");
+  const reloadBtn     = $("reload-chapters-btn");
+  const saveBtn       = $("save-chapters-btn");
+  const delBtn        = $("delete-chapter-btn");
   const saveCurrentBtn = $("save-current-btn");
+  const geocodeBtn    = $("geocode-current-btn");
 
   if (addBtn) addBtn.addEventListener("click", addChapter);
   if (reloadBtn) reloadBtn.addEventListener("click", loadChapters);
@@ -288,6 +403,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  if (geocodeBtn) {
+    geocodeBtn.addEventListener("click", async () => {
+      await geocodeCurrentChapter();
+    });
+  }
 
   // Met à jour en temps réel
   [
@@ -300,6 +420,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "field-email",
     "field-facebook",
     "field-instagram",
+    "field-lat",
+    "field-lon",
     "field-help-info"
   ].forEach((id) => {
     const el = $(id);
