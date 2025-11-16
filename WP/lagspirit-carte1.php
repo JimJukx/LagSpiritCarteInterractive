@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Lag Spirit – Carte interactive
- * Description: Carte interactive des chapitres Lag Spirit.
+ * Description: Carte interactive des chapitres Lag Spirit (harcèlement scolaire).
  * Version: 1.0.0
  * Author: Lag Spirit MC
  */
@@ -11,12 +11,12 @@ if (!defined('ABSPATH')) exit;
 define('LAGSPIRIT_CARTE_URL',  plugin_dir_url(__FILE__));
 define('LAGSPIRIT_CARTE_PATH', plugin_dir_path(__FILE__));
 
-/**
- * Enregistrement des assets
- */
+/* ============================================================
+   ENREGISTREMENT CSS / JS
+============================================================ */
 function lagspirit_carte_register_assets() {
 
-    // Leaflet (CDN)
+    // Leaflet
     wp_register_style(
         'leaflet-css',
         'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
@@ -31,7 +31,7 @@ function lagspirit_carte_register_assets() {
         true
     );
 
-    // CSS utilisateur
+    // Style principal
     wp_register_style(
         'lagspirit-carte-style',
         LAGSPIRIT_CARTE_URL . 'assets/css/style.css',
@@ -39,7 +39,7 @@ function lagspirit_carte_register_assets() {
         '1.0.0'
     );
 
-    // JS utilisateur
+    // Script principal
     wp_register_script(
         'lagspirit-carte-script',
         LAGSPIRIT_CARTE_URL . 'assets/js/app.js',
@@ -48,21 +48,23 @@ function lagspirit_carte_register_assets() {
         true
     );
 
-    // Passage de variables PHP → JS
+    // On fournit les chemins nécessaires au JS
     wp_localize_script(
         'lagspirit-carte-script',
-        'lagspiritCarteData',
+        'lagCarteData',
         [
-            'assetsBaseUrl' => LAGSPIRIT_CARTE_URL . 'assets/',
-            'admin_url'     => LAGSPIRIT_CARTE_URL . 'assets/admin/admincarte.html',
+            'assets' => LAGSPIRIT_CARTE_URL . 'assets/',
+            'adminPage' => LAGSPIRIT_CARTE_URL . 'assets/admin/admincarte.html',
+            'secretFile' => LAGSPIRIT_CARTE_URL . 'assets/admin/admincarte-secret.json'
         ]
     );
 }
 add_action('wp_enqueue_scripts', 'lagspirit_carte_register_assets');
 
-/**
- * SHORTCODE : [lagspirit_carte]
- */
+
+/* ============================================================
+   SHORTCODE
+============================================================ */
 function lagspirit_carte_shortcode() {
 
     wp_enqueue_style('lagspirit-carte-style');
@@ -71,99 +73,98 @@ function lagspirit_carte_shortcode() {
     ob_start();
     ?>
 
-    <div class="lagspirit-wrapper">
+<div class="lagspirit-wrapper">
 
-      <header>
-        <div class="brand">
-          <div class="brand-logo">
-            <img src="<?php echo esc_url( LAGSPIRIT_CARTE_URL . 'assets/img/lagspirit-logo.png'); ?>" alt="Logo Lag Spirit">
-          </div>
-          <div>
-            <h1>Lag Spirit – Carte des Chapitres</h1>
-            <div class="subtitle">Soutiens aux victimes de harcèlement scolaire</div>
-          </div>
-        </div>
-
-        <div class="search-area">
-          <input id="city-search" type="text" placeholder="Tape ta ville (ex : Lyon)">
-          <button id="search-btn">Trouver</button>
-          <button id="locate-btn">Me localiser</button>
-
-          <!-- ⚙️ Bouton admin (double clic) -->
-          <button id="admin-carte-btn" class="admin-btn" title="Administration">
-            ⚙️
-          </button>
-        </div>
-      </header>
-
-      <div class="welcome-banner">
-        Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
-      </div>
-
-      <main>
-        <div id="map"></div>
-
-        <aside class="sidebar">
-          <h2>Besoin d’aide ?</h2>
-          <p class="info-text">
-            Entre une ville ou clique sur une zone de la carte.
-          </p>
-
-          <div id="result-card" class="chapter-card">
-            <div class="chapter-tag">Chapitre sélectionné</div>
-            <h3>Aucun chapitre affiché</h3>
-            <p>Saisis une ville ou clique sur la carte.</p>
-          </div>
-
-          <div class="chapters-list-wrapper">
-            <div class="chapters-list-header">
-              <div class="chapters-list-title">Chapitres Lag Spirit</div>
-              <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="false">
-                Afficher
-              </button>
-            </div>
-            <div id="chapters-list" class="chapters-list collapsed"></div>
-          </div>
-
-          <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
-
-          <div class="legal-info">
-            <p>
-              Le <strong>Lag Spirit MC</strong> compte des professionnels issus
-              des forces de l’ordre, mais intervenant uniquement comme
-              <strong>bénévoles associatifs</strong>.
-            </p>
-
-            <button id="emergency-toggle" class="emergency-btn">
-              Afficher les numéros d’urgence
-            </button>
-
-            <div id="emergency-numbers" class="emergency-numbers">
-              <p class="legal-numbers">
-                <strong>17</strong> – Police<br>
-                <strong>15</strong> – SAMU<br>
-                <strong>18</strong> – Pompiers<br>
-                <strong>112</strong> – Numéro d’urgence européen<br>
-                <strong>119</strong> – Enfance en danger<br>
-                <strong>3018</strong> – Cyberharcèlement<br>
-              </p>
-            </div>
-          </div>
-
-        </aside>
-      </main>
-
-      <!-- POPUP mot de passe -->
-      <div id="admin-popup" class="admin-popup">
-        <div class="admin-popup-box">
-          <h3>Accès administrateur</h3>
-          <input type="password" id="admin-pass-input" placeholder="Code secret">
-          <div id="admin-pass-error" class="admin-error"></div>
-          <button id="admin-pass-validate">Valider</button>
-        </div>
-      </div>
-
+<header>
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="<?php echo esc_url(LAGSPIRIT_CARTE_URL.'assets/img/lagspirit-logo.png'); ?>" alt="Logo Lag Spirit" />
     </div>
+    <div>
+      <h1>Lag Spirit – Carte des Chapitres</h1>
+      <div class="subtitle">Soutiens aux victimes de harcèlement scolaire</div>
+    </div>
+  </div>
+
+  <div class="search-area">
+      <input id="city-search" type="text" placeholder="Tape ta ville (ex : Lyon, Brest...)" />
+      <button id="search-btn">Trouve le chapitre le plus proche</button>
+      <button id="locate-btn">Me localiser</button>
+
+      <!-- Icône admin (visible par tous mais nécessite mot de passe) -->
+      <div id="admin-gear" title="Administration"></div>
+  </div>
+</header>
+
+<div class="welcome-banner">
+  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+</div>
+
+<main>
+  <div id="map"></div>
+
+  <aside class="sidebar">
+    <h2>Besoin d’aide&nbsp;?</h2>
+    <p class="info-text">
+      Entre ta ville ou clique sur une zone de la carte.
+      Si la distance est trop importante, il peut être difficile pour un chapitre
+      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
+      et t’apporter des conseils.
+    </p>
+
+    <div id="result-card" class="chapter-card">
+      <div class="chapter-tag">Chapitre sélectionné</div>
+      <h3>Aucun chapitre affiché</h3>
+      <p>
+        Entre une ville ou clique sur une zone de la carte pour afficher
+        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
+      </p>
+    </div>
+
+    <div class="chapters-list-wrapper">
+      <div class="chapters-list-header">
+        <div class="chapters-list-title">Chapitres Lag Spirit</div>
+        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="false">
+          Afficher
+        </button>
+      </div>
+      <div id="chapters-list" class="chapters-list collapsed"></div>
+    </div>
+
+    <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
+
+    <div class="legal-info">
+      <p>
+        Le <strong>Lag Spirit MC</strong> compte parmi ses membres des
+        professionnels issus des forces de l’ordre. Cependant, dans le cadre
+        de nos actions, ces membres interviennent strictement en qualité de
+        <strong>bénévoles associatifs</strong>. Nos interventions ne se
+        substituent en aucun cas aux services d’urgence, aux autorités
+        judiciaires ou aux professionnels de santé.
+      </p>
+      <p>
+        En cas de danger, utilisez les <strong>numéros d’urgence</strong>.
+      </p>
+
+      <button id="emergency-toggle" class="emergency-btn">
+        Afficher les numéros d’urgence
+      </button>
+
+      <div id="emergency-numbers" class="emergency-numbers">
+        <p class="legal-numbers">
+          <strong>17</strong> – Police / Gendarmerie<br>
+          <strong>15</strong> – SAMU<br>
+          <strong>18</strong> – Pompiers<br>
+          <strong>112</strong> – Numéro d’urgence européen<br>
+          <strong>119</strong> – Enfance en danger<br>
+          <strong>3018</strong> – Cyberharcèlement<br>
+        </p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+</div>
 
     <?php
     return ob_get_clean();
