@@ -17,6 +17,7 @@
     h1 {
       text-align: center;
       color: #d4af37;
+      margin-bottom: 1rem;
     }
 
     .container {
@@ -29,7 +30,7 @@
     }
 
     h2 {
-      margin-top: 1.5rem;
+      margin-top: 1.3rem;
       color: #e7c865;
     }
 
@@ -47,6 +48,7 @@
       border: 1px solid #444;
       background: #222;
       color: white;
+      font-size: 0.9rem;
     }
 
     .buttons-row {
@@ -61,6 +63,7 @@
       border: none;
       cursor: pointer;
       font-weight: bold;
+      font-size: 0.9rem;
     }
 
     #save-btn {
@@ -115,6 +118,7 @@
     .chapter-actions {
       display: flex;
       gap: 0.4rem;
+      flex-wrap: wrap;
     }
 
     .delete-btn {
@@ -146,19 +150,54 @@
     }
 
     #output {
-      margin-top: 1.5rem;
+      margin-top: 1.3rem;
       white-space: pre-wrap;
       background: #222;
       padding: 1rem;
       border-radius: 10px;
       border: 1px solid #444;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      overflow-x: auto;
     }
 
     .info-note {
       font-size: 0.8rem;
       opacity: 0.8;
       margin-top: 0.3rem;
+    }
+
+    /* ====== MODE MOBILE ====== */
+    @media (max-width: 600px) {
+      body {
+        padding: 0.5rem;
+      }
+
+      .container {
+        padding: 0.8rem;
+      }
+
+      .buttons-row {
+        flex-direction: column;
+      }
+
+      #save-btn,
+      #cancel-edit-btn {
+        width: 100%;
+      }
+
+      .chapter-item {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .chapter-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .chapter-actions button {
+        flex: 0 0 auto;
+      }
     }
   </style>
 </head>
@@ -333,11 +372,10 @@ function deleteChapter(index) {
   refreshList();
   updateOutput();
 
-  // si on supprimait celui en cours d'édition, on réinitialise
   if (editingIndex === index) {
     resetForm();
   } else if (editingIndex !== null && editingIndex > index) {
-    editingIndex--; // on décale l'index si nécessaire
+    editingIndex--;
   }
 }
 
