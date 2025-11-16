@@ -1,6 +1,9 @@
 let chapters = [];
 let selectedIndex = -1;
 
+let citySuggestionsData = [];
+
+// Chargement du chapters.json existant
 async function loadChapters() {
   try {
     const res = await fetch("chapters.json");
@@ -19,6 +22,7 @@ async function loadChapters() {
   }
 }
 
+// Affichage du tableau des chapitres
 function renderTable() {
   const tbody = document.querySelector("#chapters-table tbody");
   tbody.innerHTML = "";
@@ -45,6 +49,7 @@ function renderTable() {
   });
 }
 
+// Quand on clique sur un chapitre dans la liste
 function selectChapter(idx) {
   selectedIndex = idx;
   renderTable();
@@ -69,6 +74,7 @@ function selectChapter(idx) {
   updateJsonOutput();
 }
 
+// Réinitialiser le formulaire
 function clearForm() {
   selectedIndex = -1;
   document.getElementById("field-id").value = "";
@@ -86,6 +92,7 @@ function clearForm() {
   updateJsonOutput();
 }
 
+// Récupérer les données du formulaire sous forme d'objet chapitre
 function formToChapter() {
   const idInput = document.getElementById("field-id").value.trim();
   const name = document.getElementById("field-name").value.trim();
@@ -131,6 +138,7 @@ function formToChapter() {
   };
 }
 
+// Met à jour la zone JSON à partir du tableau chapters
 function updateJsonOutput() {
   const cleaned = chapters.map((ch) => {
     const obj = {
@@ -159,6 +167,7 @@ function updateJsonOutput() {
   );
 }
 
+// Télécharger le JSON généré
 function downloadJson() {
   const blob = new Blob([document.getElementById("json-output").value], {
     type: "application/json"
@@ -171,6 +180,91 @@ function downloadJson() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// -------- Auto-complétion de la ville dans l'admin --------
+
+async function fetchCitySuggestionsAdmin(query) {
+  if (!query || query.length < 3) {
+    renderCitySuggestionsAdmin([]);
+    return;
+  }
+
+  const url =
+    "https://nominatim.openstreetmap.org/search?" +
+    "format=json&addressdetails=1&limit=5&countrycodes=fr&" +
+    "q=" +
+    encodeURIComponent(query);
+
+  try {
+    const res = await fetch(url, { headers: { "Accept-Language": "fr" } });
+    const data = await res.json();
+
+    citySuggestionsData = data.map((item) => {
+      const display = item.display_name || "";
+      return {
+        label: display,
+        cityLabel: buildNiceCityLabel(item)
+      };
+    });
+
+    renderCitySuggestionsAdmin(citySuggestionsData);
+  } catch (e) {
+    console.warn("Erreur suggestions ville admin :", e);
+    renderCitySuggestionsAdmin([]);
+  }
+}
+
+function buildNiceCityLabel(item) {
+  const addr = item.address || {};
+  const city =
+    addr.city ||
+    addr.town ||
+    addr.village ||
+    addr.municipality ||
+    addr.county ||
+    "";
+  const postcode = addr.postcode || "";
+  const state = addr.state || "";
+  const country = addr.country || "";
+
+  let parts = [];
+  if (city) parts.push(city);
+  if (postcode) parts.push(postcode);
+  else if (state) parts.push(state);
+  else if (country) parts.push(country);
+
+  return parts.join(" – ");
+}
+
+function renderCitySuggestionsAdmin(list) {
+  const box = document.getElementById("city-suggestions");
+  if (!box) return;
+
+  if (!list || list.length === 0) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = "";
+  list.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "city-suggestion-item";
+    div.textContent = item.cityLabel || item.label;
+    div.dataset.index = index;
+
+    div.addEventListener("click", () => {
+      const input = document.getElementById("field-city");
+      input.value = item.cityLabel || item.label;
+      box.style.display = "none";
+      box.innerHTML = "";
+    });
+
+    box.appendChild(div);
+  });
+
+  box.style.display = "block";
 }
 
 // ---- Events ----
@@ -235,4 +329,39 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("download-json-btn")
     .addEventListener("click", downloadJson);
+
+  // Auto-complétion sur le champ "Ville"
+  const cityInput = document.getElementById("field-city");
+  const cityBox = document.getElementById("city-suggestions");
+
+  if (cityInput && cityBox) {
+    cityInput.addEventListener("keyup", (e) => {
+      const value = cityInput.value.trim();
+
+      if (e.key === "Enter") {
+        if (value.length >= 3) {
+          fetchCitySuggestionsAdmin(value);
+        } else {
+          cityBox.style.display = "none";
+          cityBox.innerHTML = "";
+        }
+        return;
+      }
+
+      if (value.length >= 3) {
+        fetchCitySuggestionsAdmin(value);
+      } else {
+        cityBox.style.display = "none";
+        cityBox.innerHTML = "";
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      const wrapper = cityInput.parentElement;
+      if (!wrapper.contains(e.target)) {
+        cityBox.style.display = "none";
+        cityBox.innerHTML = "";
+      }
+    });
+  }
 });
