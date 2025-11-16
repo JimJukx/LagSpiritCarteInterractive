@@ -2,119 +2,248 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Lag Spirit – Aide Harcèlement & Carte des Chapitres</title>
+  <title>Administration – Chapitres Lag Spirit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: white;
+      margin: 0;
+      padding: 1rem;
+    }
 
-  <!-- Ton CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+    h1 {
+      text-align: center;
+      color: #d4af37;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #333;
+    }
+
+    label {
+      display: block;
+      margin-top: 0.8rem;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      border-radius: 5px;
+      border: 1px solid #444;
+      background: #222;
+      color: white;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      background: #d4af37;
+      color: black;
+    }
+
+    button:hover {
+      background: #b8962f;
+    }
+
+    .chapter-list {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #222;
+      border-radius: 10px;
+      border: 1px solid #333;
+    }
+
+    .chapter-item {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chapter-item:last-child {
+      border-bottom: none;
+    }
+
+    .delete-btn {
+      background: #ff4444;
+      color: white;
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background: #cc3333;
+    }
+
+    #output {
+      margin-top: 1.5rem;
+      white-space: pre-wrap;
+      background: #222;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #444;
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-  <div class="brand">
-    <div class="brand-logo">
-      <img src="lagspirit-logo.png" alt="Logo Lag Spirit" />
-    </div>
-    <div>
-      <h1>Lag Spirit – Carte des Chapitres</h1>
-      <div class="subtitle">Soutiens aux victimes de harcèlement scolaire</div>
-    </div>
-  </div>
+<h1>Administration des Chapitres Lag Spirit</h1>
 
-  <div class="search-area">
-    <div class="search-input-wrapper">
-      <input
-        id="city-search"
-        type="text"
-        placeholder="Tape ta ville (ex : Lyon, Brest...)"
-        autocomplete="off"
-      />
-      <div id="search-suggestions" class="search-suggestions"></div>
-    </div>
-    <button id="search-btn">Trouve le chapitre le plus proche</button>
-    <button id="locate-btn">Me localiser</button>
-  </div>
-</header>
+<div class="container">
 
-<!-- Bandeau d'accueil -->
-<div class="welcome-banner">
-  Tu n’es pas seul(e). Nous sommes là pour t’écouter, te conseiller et t’orienter.
+  <h2>Ajouter / Modifier un chapitre</h2>
+
+  <label>Nom du chapitre</label>
+  <input id="name" type="text" placeholder="Ex : Ariovistos" />
+
+  <label>Ville du chapitre</label>
+  <input id="city" type="text" placeholder="Ex : Strasbourg" />
+
+  <label>Mode de couverture</label>
+  <select id="mode">
+    <option value="distance">Distance</option>
+    <option value="departments">Départements</option>
+    <option value="both">Distance + Départements</option>
+  </select>
+
+  <label>Distance max (km)</label>
+  <input id="distance" type="number" value="150" />
+
+  <label>Liste des départements (séparés par des virgules)</label>
+  <input id="deps" type="text" placeholder="Ex : 67,68" />
+
+  <label>Email</label>
+  <input id="email" type="email" />
+
+  <label>Téléphone</label>
+  <input id="phone" type="text" />
+
+  <label>Facebook</label>
+  <input id="facebook" type="text" />
+
+  <label>Instagram</label>
+  <input id="instagram" type="text" />
+
+  <button onclick="addChapter()">Ajouter / Mettre à jour</button>
+
+  <h2 style="margin-top:2rem;">Chapitres existants</h2>
+
+  <div id="chapters-list" class="chapter-list"></div>
+
+  <h2>Fichier JSON généré</h2>
+  <pre id="output">{}</pre>
+
 </div>
 
-<main>
-  <div id="map"></div>
+<script>
+let chapters = [];
 
-  <aside class="sidebar">
-    <h2>Besoin d’aide&nbsp;?</h2>
-    <p class="info-text">
-      Entre ta ville ou clique sur une zone de la carte.
-      Si la distance est trop importante, il peut être difficile pour un chapitre
-      de se déplacer, mais nous restons disponibles pour te soutenir, t’écouter
-      et t’apporter des conseils.
-    </p>
+/* Charger chapters.json existant */
+async function loadChapters() {
+  try {
+    const response = await fetch("chapters.json");
+    chapters = await response.json();
+    refreshList();
+    updateOutput();
+  } catch (err) {
+    console.log("Impossible de charger chapters.json", err);
+  }
+}
 
-    <div id="result-card" class="chapter-card">
-      <div class="chapter-tag">Chapitre sélectionné</div>
-      <h3>Aucun chapitre affiché</h3>
-      <p>
-        Entre une ville ou clique sur une zone de la carte pour afficher
-        le chapitre le plus proche si un chapitre Lag Spirit couvre ta zone.
-      </p>
-    </div>
+/* Ajouter ou modifier un chapitre */
+function addChapter() {
+  const name = document.getElementById("name").value.trim();
+  const city = document.getElementById("city").value.trim();
+  const mode = document.getElementById("mode").value;
+  const distance = parseInt(document.getElementById("distance").value);
+  const deps = document
+    .getElementById("deps")
+    .value.split(",")
+    .map(d => d.trim())
+    .filter(d => d !== "");
 
-    <div class="chapters-list-wrapper">
-      <div class="chapters-list-header">
-        <div class="chapters-list-title">Chapitres Lag Spirit</div>
-        <button id="toggle-chapters" class="chapters-toggle-btn" aria-expanded="true">
-          Masquer
-        </button>
-      </div>
-      <div id="chapters-list" class="chapters-list"></div>
-    </div>
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const facebook = document.getElementById("facebook").value.trim();
+  const instagram = document.getElementById("instagram").value.trim();
 
-    <p class="motto">🤜 FORT ENSEMBLE 🤛</p>
+  if (!name || !city) {
+    alert("Nom + ville obligatoires.");
+    return;
+  }
 
-    <!-- Bloc info important sous la devise -->
-    <div class="legal-info">
-      <p>
-        Le <strong>Lag Spirit MC</strong> compte parmi ses membres des
-        professionnels issus des forces de l’ordre. Cependant, dans le cadre
-        de nos actions, ces membres interviennent strictement en qualité de
-        <strong>bénévoles associatifs</strong>. Nos interventions ne se
-        substituent en aucun cas aux services d’urgence, aux autorités
-        judiciaires ou aux professionnels de santé.
-      </p>
-      <p>
-        En cas de danger, de menace ou de situation nécessitant une intervention
-        officielle, utilisez les <strong>numéros d’urgence</strong>.
-      </p>
-      <button id="emergency-toggle" class="emergency-btn">
-        Afficher les numéros d’urgence
-      </button>
-      <div id="emergency-numbers" class="emergency-numbers">
-        <p class="legal-numbers">
-          <strong>17</strong> – Police / Gendarmerie<br />
-          <strong>15</strong> – SAMU (urgence médicale)<br />
-          <strong>18</strong> – Pompiers<br />
-          <strong>112</strong> – Numéro d’urgence européen<br />
-          <strong>119</strong> – Enfance en danger<br />
-          <strong>3018</strong> – Harcèlement et cyberharcèlement<br />
-        </p>
-      </div>
-    </div>
-  </aside>
-</main>
+  const existing = chapters.find(c => c.name.toLowerCase() === name.toLowerCase());
 
-<!-- JS -->
-<script src="js/app.js"></script>
+  const newChap = {
+    name,
+    city,
+    coverageMode: mode,
+    maxDistanceKm: distance,
+    departments: deps,
+    contactEmail: email,
+    contactPhone: phone,
+    facebook,
+    instagram
+  };
+
+  if (existing) {
+    Object.assign(existing, newChap);
+  } else {
+    chapters.push(newChap);
+  }
+
+  refreshList();
+  updateOutput();
+}
+
+/* Supprimer un chapitre */
+function deleteChapter(name) {
+  chapters = chapters.filter(c => c.name !== name);
+  refreshList();
+  updateOutput();
+}
+
+/* Afficher la liste */
+function refreshList() {
+  const list = document.getElementById("chapters-list");
+  list.innerHTML = "";
+
+  chapters.forEach(ch => {
+    const div = document.createElement("div");
+    div.className = "chapter-item";
+    div.innerHTML = `
+      <span>${ch.name} – ${ch.city}</span>
+      <button class="delete-btn" onclick="deleteChapter('${ch.name}')">Supprimer</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+/* Afficher le JSON généré */
+function updateOutput() {
+  document.getElementById("output").textContent = JSON.stringify(chapters, null, 2);
+}
+
+loadChapters();
+</script>
 
 </body>
 </html>
