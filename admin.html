@@ -58,20 +58,11 @@
       font-weight: bold;
       background: #d4af37;
       color: black;
+      width: 100%;
     }
 
     button:hover {
       background: #b8962f;
-    }
-
-    .secondary-btn {
-      background: #444;
-      color: #f0f0f0;
-      margin-left: 0.5rem;
-    }
-
-    .secondary-btn:hover {
-      background: #555;
     }
 
     .chapter-list {
@@ -148,6 +139,7 @@
       opacity: 0.8;
       margin-top: 0.3rem;
     }
+
   </style>
 </head>
 
@@ -177,9 +169,7 @@
 
   <label>Liste des départements (séparés par des virgules)</label>
   <input id="deps" type="text" placeholder="Ex : 67,68" />
-  <div class="info-note">
-    Laisse vide si le chapitre ne couvre pas de département précis.
-  </div>
+  <div class="info-note">Laisse vide si le chapitre ne couvre pas de département précis.</div>
 
   <label>Email</label>
   <input id="email" type="email" placeholder="exemple@domaine.fr" />
@@ -193,26 +183,20 @@
   <label>Instagram</label>
   <input id="instagram" type="text" placeholder="URL du profil Instagram" />
 
-  <div>
-    <button id="save-btn" onclick="addOrUpdateChapter()">Ajouter ce chapitre</button>
-    <button class="secondary-btn" type="button" onclick="resetForm()">Nouveau chapitre</button>
-  </div>
+  <button id="save-btn" onclick="addOrUpdateChapter()">Ajouter ce chapitre</button>
 
   <h2>Chapitres existants</h2>
-
   <div id="chapters-list" class="chapter-list"></div>
 
   <h2>Fichier JSON généré (chapters.json)</h2>
-  <p class="info-note">
-    Copie ce contenu dans ton fichier <strong>chapters.json</strong> sur GitHub / ton hébergement.
-  </p>
+  <p class="info-note">Copie-colle ce contenu dans ton fichier <strong>chapters.json</strong>.</p>
   <pre id="output">{}</pre>
 
 </div>
 
 <script>
 let chapters = [];
-let editingIndex = null; // null = ajout, nombre = index en édition
+let editingIndex = null;
 
 /* Charger chapters.json existant */
 async function loadChapters() {
@@ -222,12 +206,11 @@ async function loadChapters() {
     refreshList();
     updateOutput();
   } catch (err) {
-    console.log("Impossible de charger chapters.json", err);
     chapters = [];
   }
 }
 
-/* Réinitialiser le formulaire (retour en mode "ajout") */
+/* Réinitialiser formulaire */
 function resetForm() {
   editingIndex = null;
   document.getElementById("name").value = "";
@@ -239,20 +222,17 @@ function resetForm() {
   document.getElementById("phone").value = "";
   document.getElementById("facebook").value = "";
   document.getElementById("instagram").value = "";
-
-  const btn = document.getElementById("save-btn");
-  btn.textContent = "Ajouter ce chapitre";
+  document.getElementById("save-btn").textContent = "Ajouter ce chapitre";
 }
 
-/* Ajouter ou modifier un chapitre selon editingIndex */
+/* Ajouter / mettre à jour un chapitre */
 function addOrUpdateChapter() {
   const name = document.getElementById("name").value.trim();
   const city = document.getElementById("city").value.trim();
   const mode = document.getElementById("mode").value;
   const distance = parseInt(document.getElementById("distance").value, 10);
-  const deps = document
-    .getElementById("deps")
-    .value.split(",")
+  const deps = document.getElementById("deps").value
+    .split(",")
     .map(d => d.trim())
     .filter(d => d !== "");
 
@@ -278,11 +258,9 @@ function addOrUpdateChapter() {
     instagram
   };
 
-  if (editingIndex !== null && editingIndex >= 0 && editingIndex < chapters.length) {
-    // Mise à jour du chapitre existant
+  if (editingIndex !== null) {
     chapters[editingIndex] = newChap;
   } else {
-    // Ajout d'un nouveau chapitre
     chapters.push(newChap);
   }
 
@@ -291,58 +269,41 @@ function addOrUpdateChapter() {
   resetForm();
 }
 
-/* Préparer l'édition d'un chapitre existant */
+/* Remplir le formulaire pour modification */
 function editChapter(index) {
   const ch = chapters[index];
   if (!ch) return;
 
   editingIndex = index;
 
-  document.getElementById("name").value = ch.name || "";
-  document.getElementById("city").value = ch.city || "";
-  document.getElementById("mode").value = ch.coverageMode || "distance";
-  document.getElementById("distance").value =
-    typeof ch.maxDistanceKm === "number" ? ch.maxDistanceKm : 150;
-  document.getElementById("deps").value = Array.isArray(ch.departments)
-    ? ch.departments.join(",")
-    : "";
-
+  document.getElementById("name").value = ch.name;
+  document.getElementById("city").value = ch.city;
+  document.getElementById("mode").value = ch.coverageMode;
+  document.getElementById("distance").value = ch.maxDistanceKm;
+  document.getElementById("deps").value = ch.departments.join(",");
   document.getElementById("email").value = ch.contactEmail || "";
   document.getElementById("phone").value = ch.contactPhone || "";
   document.getElementById("facebook").value = ch.facebook || "";
   document.getElementById("instagram").value = ch.instagram || "";
 
-  const btn = document.getElementById("save-btn");
-  btn.textContent = "Mettre à jour ce chapitre";
+  document.getElementById("save-btn").textContent = "Mettre à jour ce chapitre";
 }
 
 /* Supprimer un chapitre */
 function deleteChapter(index) {
-  const ch = chapters[index];
-  if (!ch) return;
-
-  if (!confirm(`Supprimer le chapitre "${ch.name}" ?`)) {
-    return;
-  }
-
+  if (!confirm("Supprimer ce chapitre ?")) return;
   chapters.splice(index, 1);
   refreshList();
   updateOutput();
-
-  // si on était en train d'éditer ce chapitre, on réinitialise le formulaire
-  if (editingIndex === index) {
-    resetForm();
-  } else if (editingIndex !== null && editingIndex > index) {
-    editingIndex--; // on ajuste l'index en cas de suppression avant
-  }
+  resetForm();
 }
 
-/* Afficher la liste des chapitres */
+/* Afficher la liste */
 function refreshList() {
   const list = document.getElementById("chapters-list");
   list.innerHTML = "";
 
-  if (!chapters.length) {
+  if (chapters.length === 0) {
     list.textContent = "Aucun chapitre pour le moment.";
     return;
   }
@@ -377,12 +338,12 @@ function refreshList() {
   });
 }
 
-/* Afficher le JSON généré */
+/* Afficher JSON final */
 function updateOutput() {
-  document.getElementById("output").textContent = JSON.stringify(chapters, null, 2);
+  document.getElementById("output").textContent =
+    JSON.stringify(chapters, null, 2);
 }
 
-/* Chargement initial */
 loadChapters();
 </script>
 
