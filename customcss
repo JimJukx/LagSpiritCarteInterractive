@@ -35,3 +35,9 @@
   height: 100%;
   min-height: 450px;
 }
+@media (max-width: 800px) {
+  .lagspirit-wrapper #map {
+    height: 50vh;      /* la carte prend seulement la moitié de l'écran */
+    min-height: 50vh;
+  }
+}
