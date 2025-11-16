@@ -145,10 +145,11 @@ async function fetchCitySuggestions(query) {
   }
 
   lastSearchQuery = query;
+  const qLower = query.toLowerCase();
 
   const url =
     "https://nominatim.openstreetmap.org/search?" +
-    "format=json&addressdetails=1&limit=5&countrycodes=fr&" +
+    "format=json&addressdetails=1&limit=10&countrycodes=fr&" +
     "q=" +
     encodeURIComponent(query);
 
@@ -156,13 +157,48 @@ async function fetchCitySuggestions(query) {
     const res = await fetch(url, { headers: { "Accept-Language": "fr" } });
     const data = await res.json();
 
-    searchSuggestionsData = data.map((item) => {
+    // On prépare les données avec un "joli" label + vrai nom de ville
+    const mapped = data.map((item) => {
+      const addr = item.address || {};
+      const cityName =
+        addr.city ||
+        addr.town ||
+        addr.village ||
+        addr.municipality ||
+        addr.county ||
+        "";
       return {
+        raw: item,
         label: item.display_name,
-        niceLabel: buildNiceCityLabelPublic(item)
+        niceLabel: buildNiceCityLabelPublic(item),
+        cityName
       };
     });
 
+    // 1) on enlève les doublons sur le "niceLabel"
+    const unique = [];
+    const seen = new Set();
+    for (const m of mapped) {
+      const key = m.niceLabel;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(m);
+      }
+    }
+
+    // 2) on garde d'abord les villes qui commencent par ce que tu tapes (Auri…)
+    let filtered = unique.filter(
+      (m) =>
+        m.cityName &&
+        m.cityName.toLowerCase().startsWith(qLower)
+    );
+
+    // si rien ne matche précisément, on retombe sur la liste complète
+    if (filtered.length === 0) {
+      filtered = unique;
+    }
+
+    searchSuggestionsData = filtered;
     renderSearchSuggestions(searchSuggestionsData);
   } catch (e) {
     console.warn("Erreur suggestions ville (public) :", e);
