@@ -1,0 +1,12 @@
+/* Page carte en pleine largeur */
+.lagspirit-wrapper {
+    max-width: 1300px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+}
+
+/* Supprimer marges du thème sur cette page */
+.page-id-XX .wp-site-blocks {
+    padding: 0 !important;
+    margin: 0 !important;
+}
