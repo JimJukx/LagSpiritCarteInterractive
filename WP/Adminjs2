@@ -1,0 +1,312 @@
+// URLs relatives depuis assets/admin/
+const CHAPTERS_URL = '../chapters.json';
+const SAVE_URL     = '../../save_chapters.php';
+
+let chapters = [];
+let currentIndex = -1;
+
+// -----------------------
+// OUTILS
+// -----------------------
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function getVal(id) {
+  const el = $(id);
+  return el ? el.value.trim() : "";
+}
+
+function setVal(id, value) {
+  const el = $(id);
+  if (el) el.value = value != null ? value : "";
+}
+
+// -----------------------
+// CHARGEMENT / LISTE
+// -----------------------
+
+async function loadChapters() {
+  const status = $("save-status");
+  if (status) {
+    status.textContent = "Chargement de chapters.json...";
+    status.className = "status";
+  }
+
+  try {
+    const res = await fetch(CHAPTERS_URL + "?t=" + Date.now());
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      chapters = [];
+    } else {
+      chapters = data;
+    }
+
+    currentIndex = chapters.length > 0 ? 0 : -1;
+    renderChaptersList();
+    fillFormFromCurrent();
+
+    if (status) {
+      status.textContent = "";
+    }
+  } catch (e) {
+    console.error(e);
+    if (status) {
+      status.textContent = "❌ Erreur de chargement de chapters.json";
+      status.className = "status err";
+    }
+  }
+}
+
+function renderChaptersList() {
+  const list = $("chapters-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  chapters.forEach((ch, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className =
+      "chapter-item-btn" + (index === currentIndex ? " active" : "");
+    btn.innerHTML = `
+      <span class="name">${ch.name || "(Sans nom)"}</span>
+      <span style="font-size:0.7rem;opacity:0.7;">${ch.city || ""}</span>
+    `;
+    btn.addEventListener("click", () => {
+      currentIndex = index;
+      renderChaptersList();
+      fillFormFromCurrent();
+    });
+
+    list.appendChild(btn);
+  });
+}
+
+// -----------------------
+// FORMULAIRE
+// -----------------------
+
+function fillFormFromCurrent() {
+  const title = $("editor-title");
+  const deleteBtn = $("delete-chapter-btn");
+
+  if (currentIndex < 0 || !chapters[currentIndex]) {
+    if (title) title.textContent = "Aucun chapitre sélectionné";
+
+    setVal("field-name", "");
+    setVal("field-city", "");
+    setVal("field-coverage-mode", "distance");
+    setVal("field-max-distance", "");
+    setVal("field-departments", "");
+    setVal("field-phone", "");
+    setVal("field-email", "");
+    setVal("field-facebook", "");
+    setVal("field-instagram", "");
+    setVal("field-help-info", "");
+
+    if (deleteBtn) deleteBtn.disabled = true;
+    return;
+  }
+
+  const ch = chapters[currentIndex];
+
+  if (title) {
+    title.textContent = ch.name || "Chapitre";
+  }
+
+  setVal("field-name", ch.name || "");
+  setVal("field-city", ch.city || "");
+  setVal(
+    "field-coverage-mode",
+    ch.coverageMode || "distance"
+  );
+  setVal(
+    "field-max-distance",
+    typeof ch.maxDistanceKm === "number" ? String(ch.maxDistanceKm) : ""
+  );
+
+  const depts = Array.isArray(ch.departments)
+    ? ch.departments.join(",")
+    : (ch.departments || "");
+  setVal("field-departments", depts);
+
+  setVal("field-phone", ch.contactPhone || "");
+  setVal("field-email", ch.contactEmail || "");
+  setVal("field-facebook", ch.facebook || "");
+  setVal("field-instagram", ch.instagram || "");
+  setVal("field-help-info", ch.helpInfo || "");
+
+  if (deleteBtn) deleteBtn.disabled = false;
+}
+
+function updateCurrentFromForm() {
+  if (currentIndex < 0 || !chapters[currentIndex]) return;
+  const ch = { ...chapters[currentIndex] };
+
+  ch.name = getVal("field-name");
+  ch.city = getVal("field-city");
+
+  const mode = getVal("field-coverage-mode") || "distance";
+  ch.coverageMode = mode;
+
+  const maxDStr = getVal("field-max-distance").replace(",", ".");
+  const maxD = parseFloat(maxDStr);
+  if (!isNaN(maxD)) {
+    ch.maxDistanceKm = maxD;
+  } else {
+    delete ch.maxDistanceKm;
+  }
+
+  const deptStr = getVal("field-departments");
+  if (deptStr.trim()) {
+    ch.departments = deptStr
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+  } else {
+    ch.departments = [];
+  }
+
+  ch.contactPhone = getVal("field-phone");
+  ch.contactEmail = getVal("field-email");
+  ch.facebook = getVal("field-facebook");
+  ch.instagram = getVal("field-instagram");
+  ch.helpInfo = getVal("field-help-info");
+
+  chapters[currentIndex] = ch;
+  renderChaptersList(); // met à jour le nom dans la liste
+}
+
+// -----------------------
+// AJOUT / SUPPRESSION
+// -----------------------
+
+function addChapter() {
+  const newChapter = {
+    name: "Nouveau chapitre",
+    city: "",
+    coverageMode: "distance",
+    maxDistanceKm: 150,
+    departments: [],
+    contactPhone: "",
+    contactEmail: "",
+    facebook: "",
+    instagram: "",
+    helpInfo: ""
+  };
+
+  chapters.push(newChapter);
+  currentIndex = chapters.length - 1;
+  renderChaptersList();
+  fillFormFromCurrent();
+}
+
+function deleteChapter() {
+  if (currentIndex < 0 || !chapters[currentIndex]) return;
+  if (!confirm("Supprimer ce chapitre ?")) return;
+
+  chapters.splice(currentIndex, 1);
+
+  if (chapters.length === 0) {
+    currentIndex = -1;
+  } else if (currentIndex >= chapters.length) {
+    currentIndex = chapters.length - 1;
+  }
+
+  renderChaptersList();
+  fillFormFromCurrent();
+}
+
+// -----------------------
+// SAUVEGARDE
+// -----------------------
+
+async function saveChapters() {
+  const status = $("save-status");
+  if (status) {
+    status.textContent = "Sauvegarde en cours...";
+    status.className = "status";
+  }
+
+  try {
+    const res = await fetch(SAVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chapters)
+    });
+
+    const txt = await res.text();
+    if (txt.trim() === "OK") {
+      if (status) {
+        status.textContent = "✅ chapters.json sauvegardé.";
+        status.className = "status ok";
+      }
+    } else {
+      if (status) {
+        status.textContent = "❌ Erreur de sauvegarde : " + txt;
+        status.className = "status err";
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    if (status) {
+      status.textContent = "❌ Erreur réseau pendant la sauvegarde.";
+      status.className = "status err";
+    }
+  }
+}
+
+// -----------------------
+// INIT
+// -----------------------
+
+document.addEventListener("DOMContentLoaded", () => {
+  const addBtn     = $("add-chapter-btn");
+  const reloadBtn  = $("reload-chapters-btn");
+  const saveBtn    = $("save-chapters-btn");
+  const delBtn     = $("delete-chapter-btn");
+  const saveCurrentBtn = $("save-current-btn");
+
+  if (addBtn) addBtn.addEventListener("click", addChapter);
+  if (reloadBtn) reloadBtn.addEventListener("click", loadChapters);
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      updateCurrentFromForm();
+      saveChapters();
+    });
+  }
+  if (delBtn) delBtn.addEventListener("click", deleteChapter);
+  if (saveCurrentBtn) {
+    saveCurrentBtn.addEventListener("click", () => {
+      updateCurrentFromForm();
+      const status = $("save-status");
+      if (status) {
+        status.textContent = "✅ Modifications enregistrées en mémoire. Pense à sauvegarder chapters.json.";
+        status.className = "status ok";
+      }
+    });
+  }
+
+  // Met à jour en temps réel
+  [
+    "field-name",
+    "field-city",
+    "field-coverage-mode",
+    "field-max-distance",
+    "field-departments",
+    "field-phone",
+    "field-email",
+    "field-facebook",
+    "field-instagram",
+    "field-help-info"
+  ].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    const evt = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(evt, updateCurrentFromForm);
+  });
+
+  loadChapters();
+});
