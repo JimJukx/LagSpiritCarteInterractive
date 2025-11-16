@@ -2,6 +2,8 @@ let chapters = [];
 let selectedIndex = -1;
 
 let citySuggestionsData = [];
+let citySuggestTimeout = null;
+let lastCityQuery = "";
 
 // Chargement du chapters.json existant
 async function loadChapters() {
@@ -182,13 +184,21 @@ function downloadJson() {
   URL.revokeObjectURL(url);
 }
 
-// -------- Auto-complétion de la ville dans l'admin --------
+// -------- Auto-complétion de la ville dans l'admin (version fluide) --------
 
 async function fetchCitySuggestionsAdmin(query) {
   if (!query || query.length < 3) {
     renderCitySuggestionsAdmin([]);
     return;
   }
+
+  // Si la requête est identique à la dernière, on ne relance pas
+  if (query === lastCityQuery && citySuggestionsData.length > 0) {
+    renderCitySuggestionsAdmin(citySuggestionsData);
+    return;
+  }
+
+  lastCityQuery = query;
 
   const url =
     "https://nominatim.openstreetmap.org/search?" +
@@ -330,32 +340,33 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("download-json-btn")
     .addEventListener("click", downloadJson);
 
-  // Auto-complétion sur le champ "Ville"
+  // Auto-complétion fluide sur le champ "Ville"
   const cityInput = document.getElementById("field-city");
   const cityBox = document.getElementById("city-suggestions");
 
   if (cityInput && cityBox) {
-    cityInput.addEventListener("keyup", (e) => {
+    cityInput.addEventListener("input", (e) => {
       const value = cityInput.value.trim();
 
-      if (e.key === "Enter") {
-        if (value.length >= 3) {
-          fetchCitySuggestionsAdmin(value);
-        } else {
-          cityBox.style.display = "none";
-          cityBox.innerHTML = "";
-        }
+      // on annule la requête précédente si on continue à taper
+      if (citySuggestTimeout) {
+        clearTimeout(citySuggestTimeout);
+        citySuggestTimeout = null;
+      }
+
+      if (value.length < 3) {
+        cityBox.style.display = "none";
+        cityBox.innerHTML = "";
         return;
       }
 
-      if (value.length >= 3) {
+      // temporisation de 350ms après la dernière frappe
+      citySuggestTimeout = setTimeout(() => {
         fetchCitySuggestionsAdmin(value);
-      } else {
-        cityBox.style.display = "none";
-        cityBox.innerHTML = "";
-      }
+      }, 350);
     });
 
+    // Fermer la liste si on clique ailleurs
     document.addEventListener("click", (e) => {
       const wrapper = cityInput.parentElement;
       if (!wrapper.contains(e.target)) {
