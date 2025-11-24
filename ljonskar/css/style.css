@@ -121,12 +121,24 @@ body {
 }
  
 
+/* ================== BANNIÈRE ================== */
+.banniere {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: black; /* fond au cas où l’image est plus petite */
+  padding: 30px;
+  position: relative;
+}
+
 .banniere img {
   width: 100%;
+  max-width: 1300px; /* tu peux adapter si ton image est plus large */
   height: auto;
-  display: block;
-  max-height: 600px;
-  object-fit: cover;
+  border: 15px solid gold; /* cadre or plus épais */
+  border-radius: 8px;
+  box-shadow: 0 0 25px 8px gold; /* effet lumineux/flou autour du cadre */
+  object-fit: contain; /* affiche toute l’image sans la couper */
 }
 
 /* ==========================================
