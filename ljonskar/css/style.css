@@ -141,6 +141,20 @@ body {
   object-fit: contain; /* affiche toute l’image sans la couper */
 }
 
+
+
+.banniere img {
+  width: 100%;
+  max-width: 1300px;
+  height: auto;
+  border: 15px solid gold;
+  border-radius: 8px;
+
+  /* ✅ Effet lumineux adouci */
+  box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.4); /* gold plus doux et semi-transparent */
+  
+  object-fit: contain;
+}
 /* ==========================================
    CONTENU PRINCIPAL
    ========================================== */
