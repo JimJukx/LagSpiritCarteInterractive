@@ -45,3 +45,26 @@
     }
   });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // === Script menu burger ===
+  const burger = document.querySelector('.burger');
+  if (burger) {
+    burger.addEventListener('click', function () {
+      document.querySelector('.nav-mobile').classList.toggle('open');
+    });
+  }
+
+  // === Script pour lien actif ===
+  const currentPath = window.location.pathname;
+  const links = document.querySelectorAll('nav a');
+
+  links.forEach(link => {
+    const linkPath = link.getAttribute('href');
+    if (linkPath === currentPath || link.href === window.location.href) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
