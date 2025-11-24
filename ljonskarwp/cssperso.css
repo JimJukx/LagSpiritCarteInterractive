@@ -1,10 +1,9 @@
-/* Police Viking */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* Conteneur principal */
+/* Étendre le header en pleine largeur */
 .header-container {
   background-color: #111;
   color: white;
@@ -14,9 +13,11 @@
   align-items: center;
   flex-wrap: wrap;
   position: relative;
+  width: 100vw;            /* largeur pleine fenêtre */
+  box-sizing: border-box;  /* inclut le padding */
 }
 
-/* Partie gauche : Titre + menu empilés */
+/* Partie gauche = Titre + menu */
 .header-left {
   display: flex;
   flex-direction: column;
@@ -48,7 +49,7 @@
   color: #FFD700;
 }
 
-/* Partie droite : bouton centré verticalement */
+/* Partie droite = bouton centré verticalement */
 .header-right {
   display: flex;
   align-items: center;
@@ -72,7 +73,7 @@
   color: #000;
 }
 
-/* Ligne dorée de séparation */
+/* Ligne dorée en bas */
 .header-separator {
   height: 3px;
   background-color: #FFD700;
