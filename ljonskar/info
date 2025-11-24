@@ -1,0 +1,21 @@
+htdocs/
+├── index.html                ← Page d’accueil
+├── evenements.html
+├── galerie.html
+├── boutique.html
+├── contact.html
+│
+├── css/
+│   └── style.css            ← Styles communs (menu, typographies, couleurs)
+│
+├── js/
+│   ├── menu.js              ← JS global (menu, interactivités communes)
+│   ├── index.js             ← JS spécifique à index.html
+│   ├── galerie.js
+│   └── etc...
+│
+├── fonts/
+│   └── viking.ttf
+│
+└── images/
+    └── banniere.png
