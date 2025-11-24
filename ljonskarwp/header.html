@@ -150,3 +150,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // === Burger menu mobile ===
+  const burger = document.querySelector('.burger');
+  if (burger) {
+    burger.addEventListener('click', function () {
+      document.querySelector('.nav-mobile').classList.toggle('open');
+    });
+  }
+
+  // === Active link detection ===
+  const currentPath = window.location.pathname;
+
+  document.querySelectorAll('.nav-desktop a, .nav-mobile a').forEach(link => {
+    const linkPath = new URL(link.href).pathname;
+
+    // Cas spécial : page d'accueil
+    if ((currentPath === '/' || currentPath === '/index.html') && (linkPath === '/' || linkPath.includes('accueil'))) {
+      link.classList.add('active');
+    }
+
+    // Autres pages
+    else if (currentPath.startsWith(linkPath) && linkPath !== '/') {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
