@@ -181,3 +181,24 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const currentPath = window.location.pathname.replace(/\/$/, ""); // Enlève le slash final
+
+  document.querySelectorAll('.nav-desktop a, .nav-mobile a').forEach(link => {
+    const linkPath = new URL(link.href).pathname.replace(/\/$/, ""); // Idem
+
+    // Cas spécial pour la racine (accueil)
+    if ((currentPath === "" || currentPath === "/") && (linkPath === "" || linkPath === "/")) {
+      link.classList.add('active');
+    }
+
+    // Cas des autres pages
+    else if (linkPath !== "/" && currentPath.startsWith(linkPath)) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
