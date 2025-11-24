@@ -202,3 +202,35 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Menu burger mobile
+  const burger = document.querySelector('.burger');
+  if (burger) {
+    burger.addEventListener('click', function () {
+      document.querySelector('.nav-mobile').classList.toggle('open');
+    });
+  }
+
+  // Script pour lien actif
+  const currentURL = window.location.href.split('?')[0]; // Supprime les paramètres éventuels
+  const links = document.querySelectorAll("nav a");
+
+  links.forEach(link => {
+    const linkURL = link.href.split('?')[0];
+
+    // Cas spécial pour la page d’accueil
+    if ((window.location.pathname === "/" || window.location.pathname === "") && (link.getAttribute('href') === "/" || link.getAttribute('href') === "/index.html")) {
+      link.classList.add('active');
+    }
+
+    // Autres pages
+    else if (linkURL === currentURL) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
