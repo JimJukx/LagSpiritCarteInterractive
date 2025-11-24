@@ -1,28 +1,33 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lag Spirit MC - Accueil</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-
-  <!-- En-tête -->
-  <header class="header">
-    <div class="titre">Lag Spirit MC - Chapitre Ljonskar</div>
-    <nav class="menu">
-      <a href="#">Accueil</a>
-      <a href="#">Événements</a>
-      <a href="#">Galerie</a>
-      <a href="#">Boutique</a>
-      <a href="#">Contact</a>
-      <a href="#">Se connecter</a>
+<header class="custom-header">
+  <div class="header-container">
+    <div class="site-title">Lag Spirit MC - Chapitre Ljonskar</div>
+    
+    <nav class="nav-desktop">
+      <ul>
+        <li><a href="/">Accueil</a></li>
+        <li><a href="/evenements">Événements</a></li>
+        <li><a href="/galerie">Galerie</a></li>
+        <li><a href="/boutique">Boutique</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/connexion">Se connecter</a></li>
+      </ul>
     </nav>
-  </header>
 
-  <!-- Ligne or -->
-  <div class="ligne-or"></div>
+    <!-- Burger pour mobile -->
+    <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">&#9776;</button>
+  </div>
 
-</body>
-</html>
+  <!-- Menu mobile slide -->
+  <nav class="nav-mobile">
+    <ul>
+      <li><a href="/">Accueil</a></li>
+      <li><a href="/evenements">Événements</a></li>
+      <li><a href="/galerie">Galerie</a></li>
+      <li><a href="/boutique">Boutique</a></li>
+      <li><a href="/contact">Contact</a></li>
+      <li><a href="/connexion">Se connecter</a></li>
+    </ul>
+  </nav>
+
+  <div class="header-separator"></div>
+</header>
