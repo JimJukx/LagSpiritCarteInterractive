@@ -354,3 +354,42 @@ main.contenu {
     text-align: center;
   }
 }
+
+
+/* Responsive - affichage mobile */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .site-title {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .navbar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    gap: 10px;
+  }
+
+  .btn-connexion {
+    margin-top: 10px;
+    align-self: center;
+  }
+
+  .banniere img {
+    object-fit: contain;
+    height: auto;
+    width: 100%;
+  }
+}
