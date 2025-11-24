@@ -288,7 +288,10 @@ main.contenu {
   background-color: #e0b647;
 }
 
-/* ======================= VERSION MOBILE ======================= */
+
+/* ==========================================
+   VERSION MOBILE
+   ========================================== */
 @media screen and (max-width: 768px) {
 
   /* Ajuster le header */
