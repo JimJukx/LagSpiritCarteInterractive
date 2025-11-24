@@ -3,13 +3,15 @@
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* ====== CONTAINER GÉNÉRAL ====== */
+/* ====== CONTAINER ====== */
 .header-container {
   width: 100%;
   background-color: #111;
   color: white;
-  padding: 20px 20px 10px;
+  padding: 20px 20px 0;
   box-sizing: border-box;
+  position: relative;
+  z-index: 10;
 }
 
 /* ====== TITRE ====== */
@@ -21,7 +23,7 @@
   margin-bottom: 10px;
 }
 
-/* ====== MENU SLIDABLE (sur mobile) ====== */
+/* ====== MENU SCROLLABLE ====== */
 .menu-nav-scrollable {
   display: flex;
   gap: 20px;
@@ -31,26 +33,32 @@
   -webkit-overflow-scrolling: touch;
   white-space: nowrap;
   justify-content: flex-start;
+  background: none;
 }
 
 .menu-nav-scrollable a {
   scroll-snap-align: start;
   flex: 0 0 auto;
-  color: white;
+  color: white !important;
   text-decoration: none;
   font-weight: 500;
   padding: 5px 10px;
+  background: none !important;
+  border: none !important;
 }
 
 .menu-nav-scrollable a:hover {
-  color: #FFD700;
+  color: #FFD700 !important;
 }
 
 /* ====== LIGNE OR ====== */
 .header-separator {
   height: 3px;
   background-color: #FFD700;
+  width: 100%;
   margin-top: 10px;
+  display: block;
+  z-index: 5;
 }
 
 /* ====== VERSION PC ====== */
