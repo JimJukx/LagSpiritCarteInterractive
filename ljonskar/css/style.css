@@ -287,3 +287,67 @@ main.contenu {
 .btn-envoyer:hover {
   background-color: #e0b647;
 }
+
+/* ======================= VERSION MOBILE ======================= */
+@media screen and (max-width: 768px) {
+
+  /* Ajuster le header */
+  header {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .site-title {
+    font-size: 1.4em;
+    line-height: 1.2em;
+    margin-bottom: 10px;
+  }
+
+  .navbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .nav-links li {
+    margin: 5px 0;
+  }
+
+  .btn-connexion {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 1em;
+  }
+
+  /* Bannière plus souple */
+  .banniere img {
+    max-width: 100%;
+    height: auto;
+    box-shadow:
+      0 0 40px 10px rgba(255, 215, 0, 0.3),
+      0 0 80px 30px rgba(255, 215, 0, 0.2),
+      0 0 120px 40px rgba(255, 215, 0, 0.1);
+  }
+
+  /* Contenu lisible */
+  main.contenu h1 {
+    font-size: 1.6em;
+  }
+
+  main.contenu p {
+    font-size: 1em;
+  }
+
+  /* Footer simplifié */
+  footer {
+    font-size: 0.8em;
+    padding: 15px;
+    text-align: center;
+  }
+}
