@@ -1,22 +1,28 @@
-/* === Chargement de la police Viking === */
+/* ===== Police Viking ===== */
 @font-face {
   font-family: 'Viking';
-  src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
+  src: url('viking.ttf') format('truetype');
 }
 
-/* === Structure principale de l’en-tête === */
-.entete-viking {
+/* ===== Base ===== */
+body {
+  margin: 0;
+  background-color: #000;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+/* ===== En-tête global ===== */
+.header {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 10px 20px;
+  padding: 15px 20px;
   background-color: #000;
-  width: 100%;
   box-sizing: border-box;
 }
 
-/* === Titre === */
-.titre-viking {
+/* ===== Titre ===== */
+.titre {
   font-family: 'Viking', sans-serif;
   font-size: 26px;
   color: #FFD700;
@@ -24,48 +30,57 @@
   margin-bottom: 10px;
 }
 
-/* === Menu horizontal === */
-.menu-viking {
+/* ===== Menu scrollable ===== */
+.menu {
   display: flex;
-  gap: 20px;
   overflow-x: auto;
   white-space: nowrap;
-  justify-content: center;
-  padding-bottom: 5px;
-  width: 100%;
+  gap: 20px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 0;
 }
 
-.menu-viking a {
+.menu a {
   color: white;
   text-decoration: none;
+  scroll-snap-align: start;
+  flex: 0 0 auto;
   font-weight: 500;
-  transition: color 0.3s;
 }
 
-.menu-viking a:hover {
+.menu a:hover {
   color: #FFD700;
 }
 
-/* === Ligne or de séparation === */
+/* ===== Ligne or ===== */
 .ligne-or {
+  width: 100%;
   height: 3px;
   background-color: #FFD700;
-  width: 100%;
+  margin-top: 10px;
 }
 
-/* === Responsive Mobile (moins de 600px) === */
-@media screen and (max-width: 600px) {
-  .titre-viking {
-    font-size: 20px;
+/* ===== Version PC ===== */
+@media screen and (min-width: 768px) {
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .menu-viking {
-    justify-content: flex-start;
-    padding-left: 10px;
-    overflow-x: auto;
+  .titre {
+    text-align: left;
+    font-size: 28px;
+    margin: 0;
   }
 
-  .menu-viking a {
-    font-size: 14px;
+  .menu {
+    overflow: visible;
+    white-space: normal;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 30px;
+    padding: 0;
   }
 }
