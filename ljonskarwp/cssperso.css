@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'Viking';
-  src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
+  src: url('/wp-content/uploads/fonts/vikingn.ttf') format('truetype');
 }
 
 .header-bar {
@@ -8,29 +8,32 @@
   align-items: center;
   justify-content: space-between;
   background-color: #111;
-  padding: 10px 30px;
+  padding: 12px 30px;
   color: #fff;
   font-family: sans-serif;
+  gap: 40px; /* Espace général entre les blocs */
 }
 
 .site-title {
   font-family: 'Viking', sans-serif;
   font-size: 20px;
-  color: #FFD700; /* or */
+  color: #FFD700;
+  margin-right: 30px;
   white-space: nowrap;
 }
 
 .menu-nav {
   display: flex;
   gap: 25px;
-  justify-content: center;
   flex: 1;
+  justify-content: center;
 }
 
 .menu-nav a {
   color: white;
   text-decoration: none;
   font-weight: 500;
+  padding: 6px 10px;
 }
 
 .menu-nav a:hover {
@@ -45,6 +48,7 @@
   border-radius: 5px;
   text-decoration: none;
   font-weight: 500;
+  margin-left: 30px;
 }
 
 .btn-connexion:hover {
