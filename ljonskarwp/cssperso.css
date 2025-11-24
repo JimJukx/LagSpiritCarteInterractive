@@ -1,52 +1,71 @@
-/* POLICE PERSO uniquement pour le titre */
+/* === Chargement de la police Viking === */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-.site-title-viking {
-  font-family: 'Viking', sans-serif;
-  color: #FFD700;
-  font-size: 26px;
-  text-align: center;
+/* === Structure principale de l’en-tête === */
+.entete-viking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #000;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Ligne or */
-.divider-or {
+/* === Titre === */
+.titre-viking {
+  font-family: 'Viking', sans-serif;
+  font-size: 26px;
+  color: #FFD700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* === Menu horizontal === */
+.menu-viking {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  white-space: nowrap;
+  justify-content: center;
+  padding-bottom: 5px;
+  width: 100%;
+}
+
+.menu-viking a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.menu-viking a:hover {
+  color: #FFD700;
+}
+
+/* === Ligne or de séparation === */
+.ligne-or {
   height: 3px;
   background-color: #FFD700;
   width: 100%;
-  margin-top: 10px;
 }
 
-/* Menu horizontal glissable mobile */
-.menu-scroll {
-  display: flex;
-  overflow-x: auto;
-  white-space: nowrap;
-  gap: 20px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
+/* === Responsive Mobile (moins de 600px) === */
+@media screen and (max-width: 600px) {
+  .titre-viking {
+    font-size: 20px;
+  }
 
-.menu-scroll a {
-  color: white;
-  text-decoration: none;
-  scroll-snap-align: start;
-  padding: 5px 10px;
-  flex: 0 0 auto;
-}
+  .menu-viking {
+    justify-content: flex-start;
+    padding-left: 10px;
+    overflow-x: auto;
+  }
 
-.menu-scroll a:hover {
-  color: #FFD700;
-}
-
-/* Version PC */
-@media (min-width: 768px) {
-  .menu-scroll {
-    overflow: visible;
-    justify-content: flex-end;
-    white-space: normal;
-    flex-wrap: wrap;
+  .menu-viking a {
+    font-size: 14px;
   }
 }
