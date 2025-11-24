@@ -3,7 +3,7 @@
    ========================================== */
 @font-face {
   font-family: 'Viking';
-  src: url('../fonts/viking.ttf') format('truetype');
+  src: url('../fonts/vikingn.ttf') format('truetype');
 }
 
 /* ==========================================
@@ -106,101 +106,20 @@ body {
    ========================================== */
 .banniere {
   display: flex;
-  justify-content: center;       /* Centrer l’image horizontalement */
-  align-items: center;           /* Centrer verticalement si hauteur fixe */
-  background-color: black;       /* Fond noir autour de l’image */
-  padding: 20px;                 /* Espace pour le cadre doré (facultatif) */
-  border: 4px solid gold;        /* Cadre doré */
-  box-sizing: border-box;
-}
-
-.banniere img {
-  max-width: 100%;               /* L’image ne dépasse pas la largeur */
-  height: auto;                  /* Hauteur automatique pour garder les proportions */
-  display: block;
-}
- 
-
-/* ================== BANNIÈRE ================== */
-.banniere {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: black; /* fond au cas où l’image est plus petite */
-  padding: 30px;
+  justify-content: center;			/* Centrer l’image horizontalement */
+  align-items: center;				/* Centrer verticalement si hauteur fixe */
+  background-color: black; 			/* Fond noir autour de l’image */
+  padding: 30px;					/* Espace pour le cadre doré (facultatif) */
   position: relative;
 }
 
 .banniere img {
-  width: 100%;
-  max-width: 1300px; /* tu peux adapter si ton image est plus large */
+  width: 100%;						/* L’image ne dépasse pas la largeur */
+  max-width: 1500px;				/* Adapter si l'image est plus large */
   height: auto;
-  border: 15px solid gold; /* cadre or plus épais */
+  border: none;						/* Pas de bord net */
   border-radius: 8px;
-  box-shadow: 0 0 25px 8px gold; /* effet lumineux/flou autour du cadre */
-  object-fit: contain; /* affiche toute l’image sans la couper */
-}
-
-
-
-.banniere img {
-  width: 100%;
-  max-width: 1300px;
-  height: auto;
-  border: 15px solid gold;
-  border-radius: 8px;
-
-  /* ✅ Effet lumineux adouci */
-  box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.4); /* gold plus doux et semi-transparent */
-  
-  object-fit: contain;
-}
-
-
-.banniere img {
-  width: 100%;
-  max-width: 1300px;
-  height: auto;
-
-  /* ✅ Pas de bord net */
-  border: none;
-
-  /* ✅ Halo doré large et diffus */
-  box-shadow:
-    0 0 60px 30px rgba(255, 215, 0, 0.1),  /* halo très large, très transparent */
-    0 0 100px 50px rgba(255, 215, 0, 0.05); /* couche encore plus large, ultra diffuse */
-
-  border-radius: 8px;
-  object-fit: contain;
-  background-color: black; /* pour éviter les zones transparentes visibles derrière */
-}
-
-
-.banniere img {
-  width: 100%;
-  max-width: 1300px;
-  height: auto;
-  border: none;
-  border-radius: 8px;
-  object-fit: contain;
-  background-color: black;
-
-  /* ✅ Halo doré renforcé et doux */
-  box-shadow:
-    0 0 40px rgba(255, 215, 0, 0.3),   /* halo moyen */
-    0 0 80px rgba(255, 215, 0, 0.2),   /* halo large */
-    0 0 120px rgba(255, 215, 0, 0.1);  /* halo ultra large */
-}
-
-
-
-.banniere img {
-  width: 100%;
-  max-width: 1300px;
-  height: auto;
-  border: none;
-  border-radius: 8px;
-  object-fit: contain;
+  object-fit: contain;				/* affiche toute l’image sans la couper */
   background-color: black;
 
   /* 🌟 Halo doré très visible, multiplié en couches */
@@ -209,6 +128,7 @@ body {
     0 0 120px 40px rgba(255, 215, 0, 0.25), /* halo large et brillant */
     0 0 200px 60px rgba(255, 215, 0, 0.15); /* halo ultra diffus */
 }
+
 /* ==========================================
    CONTENU PRINCIPAL
    ========================================== */
@@ -288,74 +208,9 @@ main.contenu {
   background-color: #e0b647;
 }
 
-
 /* ==========================================
    VERSION MOBILE
    ========================================== */
-@media screen and (max-width: 768px) {
-
-  /* Ajuster le header */
-  header {
-    flex-direction: column;
-    align-items: center;
-    padding: 10px;
-    text-align: center;
-  }
-
-  .site-title {
-    font-size: 1.4em;
-    line-height: 1.2em;
-    margin-bottom: 10px;
-  }
-
-  .navbar {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .nav-links {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .nav-links li {
-    margin: 5px 0;
-  }
-
-  .btn-connexion {
-    margin-top: 10px;
-    padding: 10px 20px;
-    font-size: 1em;
-  }
-
-  /* Bannière plus souple */
-  .banniere img {
-    max-width: 100%;
-    height: auto;
-    box-shadow:
-      0 0 40px 10px rgba(255, 215, 0, 0.3),
-      0 0 80px 30px rgba(255, 215, 0, 0.2),
-      0 0 120px 40px rgba(255, 215, 0, 0.1);
-  }
-
-  /* Contenu lisible */
-  main.contenu h1 {
-    font-size: 1.6em;
-  }
-
-  main.contenu p {
-    font-size: 1em;
-  }
-
-  /* Footer simplifié */
-  footer {
-    font-size: 0.8em;
-    padding: 15px;
-    text-align: center;
-  }
-}
-
-
 /* Responsive - affichage mobile */
 @media (max-width: 768px) {
   .header {
