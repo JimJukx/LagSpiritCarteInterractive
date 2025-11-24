@@ -1,1 +1,59 @@
 
+<header class="custom-header">
+  <div class="logo-title">
+    <h1 class="site-title">Lag Spirit MC - Chapitre Ljønskar</h1>
+  </div>
+  <nav class="main-nav">
+    <ul>
+      <li><a href="/">Accueil</a></li>
+      <li><a href="/evenements">Événements</a></li>
+      <li><a href="/galerie">Galerie</a></li>
+      <li><a href="/boutique">Boutique</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+
+
+
+
+@font-face {
+  font-family: 'Viking';
+  src: url('https://page.gd/wp-content/uploads/fonts/viking.ttf') format('truetype');
+}
+
+.custom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 40px;
+  background-color: #000; /* fond noir */
+  border-bottom: 3px solid gold; /* ligne or */
+}
+
+.site-title {
+  font-family: 'Viking', sans-serif;
+  font-size: 36px;
+  color: #fff;
+  margin: 0;
+}
+
+.main-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 25px;
+}
+
+.main-nav a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.main-nav a:hover {
+  color: gold;
+}
