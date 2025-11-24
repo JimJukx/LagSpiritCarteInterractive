@@ -1,33 +1,10 @@
-<header class="custom-header">
-  <div class="header-container">
-    <div class="site-title">Lag Spirit MC - Chapitre Ljonskar</div>
-    
-    <nav class="nav-desktop">
-      <ul>
-        <li><a href="/">Accueil</a></li>
-        <li><a href="/evenements">Événements</a></li>
-        <li><a href="/galerie">Galerie</a></li>
-        <li><a href="/boutique">Boutique</a></li>
-        <li><a href="/contact">Contact</a></li>
-        <li><a href="/connexion">Se connecter</a></li>
-      </ul>
-    </nav>
-
-    <!-- Burger pour mobile -->
-    <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">&#9776;</button>
-  </div>
-
-  <!-- Menu mobile slide -->
-  <nav class="nav-mobile">
-    <ul>
-      <li><a href="/">Accueil</a></li>
-      <li><a href="/evenements">Événements</a></li>
-      <li><a href="/galerie">Galerie</a></li>
-      <li><a href="/boutique">Boutique</a></li>
-      <li><a href="/contact">Contact</a></li>
-      <li><a href="/connexion">Se connecter</a></li>
-    </ul>
-  </nav>
-
-  <div class="header-separator"></div>
-</header>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const burger = document.querySelector('.burger');
+    if (burger) {
+      burger.addEventListener('click', function () {
+        document.querySelector('.nav-mobile').classList.toggle('open');
+      });
+    }
+  });
+</script>
