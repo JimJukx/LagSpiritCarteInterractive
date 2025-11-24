@@ -1,4 +1,4 @@
-/* ========== STYLES GÉNÉRAUX ========== */
+/* ========== GLOBAL ========== */
 body {
   margin: 0;
   font-family: 'Viking', sans-serif;
@@ -13,97 +13,93 @@ img {
 }
 
 a {
-  color: inherit;
   text-decoration: none;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: 20px;
+  color: inherit;
 }
 
 /* ========== HEADER ========== */
 .header {
   background-color: #000;
-  padding: 10px 20px;
+}
+
+.top-bar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-bottom: 1px solid #444;
-}
-
-.site-title {
-  font-size: 28px;
-  font-weight: bold;
-  color: #CBA135;
-  text-align: center;
-}
-
-.nav-bar-mobile {
-  display: none;
-  width: 100%;
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
 }
 
-.burger {
-  font-size: 28px;
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
+.site-title {
+  font-size: 24px;
+  color: gold;
+  font-weight: bold;
 }
 
 .btn-connexion {
-  background-color: transparent;
-  color: #CBA135;
-  border: 1px solid #CBA135;
-  padding: 6px 12px;
-  border-radius: 5px;
+  border: 2px solid gold;
+  color: gold;
+  padding: 6px 10px;
+  border-radius: 6px;
   font-weight: bold;
+  background: transparent;
+  margin-right: 10px;
 }
 
+.burger {
+  font-size: 28px;
+  background: none;
+  border: 2px solid gold;
+  color: gold;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ========== NAVIGATION SLIDE ========== */
 .navbar {
-  margin-top: 10px;
+  display: none;
+  flex-direction: column;
+  background-color: #111;
+  padding: 20px;
 }
 
-.nav-links li a {
-  color: #fff;
-  font-weight: bold;
-  padding: 5px 10px;
-  transition: background 0.3s ease;
+.navbar.show {
+  display: flex;
 }
 
-.nav-links li a:hover {
-  background-color: #CBA135;
-  color: #000;
-  border-radius: 4px;
+.nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-links li {
+  margin: 10px 0;
+}
+
+.nav-links a {
+  color: white;
+  font-size: 18px;
 }
 
 /* ========== CHAÎNE ========== */
 .chaine-separatrice {
-  width: 100%;
-  background: black;
   text-align: center;
-  padding: 10px 0;
+  padding: 10px;
+  background-color: black;
 }
 
 /* ========== BANNIÈRE ========== */
 .banniere {
-  background-color: black;
   text-align: center;
-  padding: 30px;
+  background-color: black;
+  padding: 30px 0;
 }
 
 .banniere img {
   max-width: 100%;
   height: auto;
   object-fit: contain;
-  border: none;
   border-radius: 8px;
   box-shadow:
     0 0 60px 20px rgba(255, 215, 0, 0.4),
@@ -113,14 +109,14 @@ ul {
 
 /* ========== CONTENU ========== */
 main.contenu {
-  padding: 20px;
   text-align: center;
+  padding: 20px;
 }
 
-main.contenu h1 {
+main h1 {
   font-size: 2em;
   margin-bottom: 10px;
-  color: #CBA135;
+  color: gold;
 }
 
 /* ========== FOOTER ========== */
@@ -131,27 +127,17 @@ main.contenu h1 {
   color: #888;
 }
 
-/* ========== RESPONSIVE MOBILE ========== */
-@media (max-width: 768px) {
-  .nav-bar-mobile {
-    display: flex;
-  }
-
+/* ========== RESPONSIVE ========== */
+@media (min-width: 769px) {
   .navbar {
-    display: none;
-    flex-direction: column;
-    width: 100%;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row;
+    justify-content: center;
+    background-color: #000;
     padding: 10px 0;
   }
 
-  .nav-links {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-  }
-
-  .site-title {
-    font-size: 22px;
+  .burger {
+    display: none;
   }
 }
