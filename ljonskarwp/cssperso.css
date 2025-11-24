@@ -1,62 +1,51 @@
+/* Police Viking */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* Étendre le header en pleine largeur */
+/* Conteneur principal sur une ligne pleine largeur */
 .header-container {
+  width: 100vw;
   background-color: #111;
   color: white;
-  padding: 20px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  padding: 20px 30px;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
   position: relative;
-  width: 100vw;            /* largeur pleine fenêtre */
-  box-sizing: border-box;  /* inclut le padding */
 }
 
-/* Partie gauche = Titre + menu */
-.header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-/* Titre */
+/* Titre à gauche */
 .site-title {
   font-family: 'Viking', sans-serif;
   font-size: 24px;
   color: #FFD700;
+  white-space: nowrap;
 }
 
-/* Menu horizontal */
+/* Menu au centre */
 .menu-nav {
   display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  gap: 25px;
+  flex: 1;
+  justify-content: center;
 }
 
 .menu-nav a {
   color: white;
   text-decoration: none;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .menu-nav a:hover {
   color: #FFD700;
 }
 
-/* Partie droite = bouton centré verticalement */
-.header-right {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-/* Bouton connexion */
+/* Bouton à droite */
 .btn-connexion {
   background: none;
   border: 2px solid #FFD700;
@@ -75,8 +64,10 @@
 
 /* Ligne dorée en bas */
 .header-separator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   height: 3px;
-  background-color: #FFD700;
   width: 100%;
-  margin-top: 20px;
+  background-color: #FFD700;
 }
