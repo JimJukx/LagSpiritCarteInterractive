@@ -3,51 +3,57 @@
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-.site-title, .menu-nav a, .btn-connexion {
-  font-family: 'Viking', sans-serif;
-}
-
-/* Conteneur principal */
-.header-container {
+.header-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 15px 30px;
-  background-color: #000;
-  color: gold;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  background-color: #111;
+  padding: 10px 30px;
+  color: #fff;
+  font-family: sans-serif;
 }
 
-/* Titre */
 .site-title {
-  font-size: 24px;
-  font-weight: bold;
   font-family: 'Viking', sans-serif;
+  font-size: 20px;
+  color: #FFD700; /* or */
+  white-space: nowrap;
 }
 
-/* Menu */
+.menu-nav {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+  flex: 1;
+}
+
 .menu-nav a {
   color: white;
   text-decoration: none;
-  margin: 0 10px;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .menu-nav a:hover {
-  color: gold;
+  color: #FFD700;
 }
 
-/* Bouton connexion */
 .btn-connexion {
-  border: 2px solid gold;
-  color: gold;
-  padding: 8px 16px;
+  background: none;
+  border: 2px solid #FFD700;
+  color: #FFD700;
+  padding: 6px 12px;
   border-radius: 5px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .btn-connexion:hover {
-  background-color: gold;
-  color: black;
+  background-color: #FFD700;
+  color: #000;
+}
+
+.header-separator {
+  height: 4px;
+  background: #FFD700;
+  width: 100%;
 }
