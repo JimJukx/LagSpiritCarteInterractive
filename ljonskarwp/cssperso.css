@@ -1,35 +1,37 @@
+/* Police Viking */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* Conteneur général du header */
-.header-bar {
+/* Conteneur principal */
+.header-container {
+  background-color: #111;
+  color: white;
+  padding: 20px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #111;
-  padding: 20px 30px;
   flex-wrap: wrap;
+  position: relative;
 }
 
-/* Titre à gauche avec police spéciale */
-.site-title {
-  font-family: 'Viking', sans-serif;
-  font-size: 22px;
-  color: #FFD700;
-  margin-right: 30px;
-}
-
-/* Conteneur titre + menu alignés horizontalement */
+/* Partie gauche : Titre + menu empilés */
 .header-left {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-/* Menu à gauche, à côté du titre */
+/* Titre */
+.site-title {
+  font-family: 'Viking', sans-serif;
+  font-size: 24px;
+  color: #FFD700;
+}
+
+/* Menu horizontal */
 .menu-nav {
   display: flex;
   gap: 20px;
@@ -40,14 +42,20 @@
   color: white;
   text-decoration: none;
   font-weight: 500;
-  padding: 6px 10px;
 }
 
 .menu-nav a:hover {
   color: #FFD700;
 }
 
-/* Bouton connexion à droite */
+/* Partie droite : bouton centré verticalement */
+.header-right {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Bouton connexion */
 .btn-connexion {
   background: none;
   border: 2px solid #FFD700;
@@ -56,6 +64,7 @@
   border-radius: 5px;
   text-decoration: none;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .btn-connexion:hover {
@@ -65,7 +74,8 @@
 
 /* Ligne dorée de séparation */
 .header-separator {
-  height: 4px;
-  background: #FFD700;
+  height: 3px;
+  background-color: #FFD700;
   width: 100%;
+  margin-top: 20px;
 }
