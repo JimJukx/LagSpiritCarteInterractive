@@ -174,6 +174,23 @@ body {
   object-fit: contain;
   background-color: black; /* pour éviter les zones transparentes visibles derrière */
 }
+
+
+.banniere img {
+  width: 100%;
+  max-width: 1300px;
+  height: auto;
+  border: none;
+  border-radius: 8px;
+  object-fit: contain;
+  background-color: black;
+
+  /* ✅ Halo doré renforcé et doux */
+  box-shadow:
+    0 0 40px rgba(255, 215, 0, 0.3),   /* halo moyen */
+    0 0 80px rgba(255, 215, 0, 0.2),   /* halo large */
+    0 0 120px rgba(255, 215, 0, 0.1);  /* halo ultra large */
+}
 /* ==========================================
    CONTENU PRINCIPAL
    ========================================== */
