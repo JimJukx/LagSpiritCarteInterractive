@@ -1,86 +1,97 @@
-/* ===== Police Viking ===== */
+/* Police Viking pour le titre uniquement */
 @font-face {
   font-family: 'Viking';
-  src: url('viking.ttf') format('truetype');
+  src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
+}
+.site-title {
+  font-family: 'Viking', serif;
+  color: gold;
+  font-size: 22px;
+  padding: 10px 20px;
 }
 
-/* ===== Base ===== */
-body {
-  margin: 0;
-  background-color: #000;
+/* Container header */
+.custom-header {
+  width: 100%;
+  background: black;
   color: white;
-  font-family: Arial, sans-serif;
 }
-
-/* ===== En-tête global ===== */
-.header {
+.header-container {
   display: flex;
-  flex-direction: column;
-  padding: 15px 20px;
-  background-color: #000;
-  box-sizing: border-box;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 20px;
 }
 
-/* ===== Titre ===== */
-.titre {
-  font-family: 'Viking', sans-serif;
-  font-size: 26px;
-  color: #FFD700;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-/* ===== Menu scrollable ===== */
-.menu {
+/* Menu desktop */
+.nav-desktop ul {
   display: flex;
-  overflow-x: auto;
-  white-space: nowrap;
-  gap: 20px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding: 10px 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-
-.menu a {
+.nav-desktop ul li {
+  margin-left: 20px;
+}
+.nav-desktop ul li a {
   color: white;
   text-decoration: none;
-  scroll-snap-align: start;
-  flex: 0 0 auto;
-  font-weight: 500;
+  font-weight: bold;
 }
 
-.menu a:hover {
-  color: #FFD700;
+/* Burger icon */
+.burger {
+  display: none;
+  background: none;
+  color: gold;
+  font-size: 28px;
+  border: none;
+  cursor: pointer;
 }
 
-/* ===== Ligne or ===== */
-.ligne-or {
-  width: 100%;
+/* Menu mobile hidden by default */
+.nav-mobile {
+  display: none;
+  background: #111;
+}
+.nav-mobile.open {
+  display: block;
+}
+.nav-mobile ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+}
+.nav-mobile ul li {
+  padding: 10px 20px;
+}
+.nav-mobile ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+/* Ligne or */
+.header-separator {
   height: 3px;
-  background-color: #FFD700;
-  margin-top: 10px;
+  background: gold;
+  width: 100%;
 }
 
-/* ===== Version PC ===== */
-@media screen and (min-width: 768px) {
-  .header {
+/* Responsive mobile */
+@media screen and (max-width: 768px) {
+  .nav-desktop {
+    display: none;
+  }
+  .burger {
+    display: block;
+  }
+  .header-container {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
   }
-
-  .titre {
-    text-align: left;
-    font-size: 28px;
-    margin: 0;
-  }
-
-  .menu {
-    overflow: visible;
-    white-space: normal;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 30px;
-    padding: 0;
+  .site-title {
+    width: 70%;
   }
 }
