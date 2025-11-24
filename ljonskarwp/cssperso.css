@@ -1,73 +1,90 @@
-/* Police Viking */
+/* Import de la police Viking */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* Conteneur principal sur une ligne pleine largeur */
+/* CONTAINER GÉNÉRAL */
 .header-container {
   width: 100vw;
   background-color: #111;
   color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 30px;
+  padding: 20px 30px 10px;
   box-sizing: border-box;
-  flex-wrap: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   position: relative;
 }
 
-/* Titre à gauche */
+/* TITRE */
 .site-title {
   font-family: 'Viking', sans-serif;
   font-size: 24px;
   color: #FFD700;
-  white-space: nowrap;
+  margin-bottom: 10px;
 }
 
-/* Menu au centre */
+/* MENU */
 .menu-nav {
   display: flex;
   gap: 25px;
-  flex: 1;
-  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  white-space: nowrap;
 }
 
 .menu-nav a {
   color: white;
   text-decoration: none;
   font-weight: 500;
-  white-space: nowrap;
 }
 
 .menu-nav a:hover {
   color: #FFD700;
 }
 
-/* Bouton à droite */
-.btn-connexion {
-  background: none;
-  border: 2px solid #FFD700;
-  color: #FFD700;
-  padding: 6px 12px;
-  border-radius: 5px;
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.btn-connexion:hover {
-  background-color: #FFD700;
-  color: #000;
-}
-
-/* Ligne dorée en bas */
+/* LIGNE OR */
 .header-separator {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   height: 3px;
-  width: 100%;
   background-color: #FFD700;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* ===================== */
+/* VERSION MOBILE SLIDE */
+/* ===================== */
+@media (max-width: 768px) {
+  .header-container {
+    align-items: center;
+    padding: 15px 20px;
+  }
+
+  .site-title {
+    text-align: center;
+    font-size: 20px;
+  }
+
+  .menu-nav {
+    overflow-x: auto;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 20px;
+    padding: 10px 0;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menu-nav a {
+    scroll-snap-align: start;
+    padding: 8px 10px;
+    flex: 0 0 auto;
+  }
+
+  .header-separator {
+    margin-top: 10px;
+  }
 }
