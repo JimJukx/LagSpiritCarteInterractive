@@ -1,0 +1,60 @@
+🎨 Design
+🌈 Couleurs :
+Fond général : noir #000000
+Texte : blanc #FFFFFF
+Accent / détails / boutons : or #CBA135
+🖋️ Police :
+Titre principal (Lag Spirit MC – Chapitre Ljonskar) en Viking.ttf
+Utilisée uniquement pour le titre, le reste en sans-serif lisible
+🧩 Header
+Fixe en haut de page
+À gauche : titre du site (en Viking.ttf)
+À droite :
+Menu avec liens vers toutes les pages
+Bouton “Se connecter” à l’extrémité
+Design :
+Menu avec boutons stylés
+Texte blanc ou or
+Fond noir
+Chaîne de moto décorative sous le header :
+Fichier : /images/chaine.png
+Taille recommandée : 3000×100 px
+🖼️ Bannière
+Située sous le menu (après la chaîne)
+Image : /images/banniere.png
+Taille : 3000×1200 px
+Pas de texte intégré à la bannière
+📄 Footer
+Présent sur toutes les pages
+Design sobre et discret
+Centré : texte du style © Lag Spirit MC – Tous droits réservés
+📂 JavaScript
+JS global dans js/menu.js pour menu, interactions partagées
+JS spécifique à chaque page si besoin :
+Copier le code
+
+- js/index.js
+- js/contact.js
+- js/evenements.js
+- etc.
+📌 Fonctionnalités prévues (évolutives)
+Élément
+État
+Navigation multi-pages
+✅ Oui (en HTML)
+Responsive mobile
+✅ Prévu avec CSS
+Bannière personnalisée
+✅ Fichier prêt
+Authentification
+❌ Pas encore (prévu plus tard)
+Formulaire contact
+❌ À faire
+Galerie
+❌ À faire
+Boutique (liste d’objets)
+❌ À faire
+Événements (calendrier)
+❌ À faire
+Inscriptions à un événement ponctuel
+❌ À faire
