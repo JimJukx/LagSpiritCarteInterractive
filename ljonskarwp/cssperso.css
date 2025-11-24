@@ -1,83 +1,52 @@
+/* POLICE PERSO uniquement pour le titre */
 @font-face {
   font-family: 'Viking';
   src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
 }
 
-/* === CONTENEUR GLOBAL === */
-.header-container {
-  width: 100vw;
-  background-color: #111 !important;
-  color: white !important;
-  padding: 20px 20px 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-/* === TITRE === */
-.site-title {
+.site-title-viking {
   font-family: 'Viking', sans-serif;
-  font-size: 24px;
   color: #FFD700;
+  font-size: 26px;
   text-align: center;
-  margin-bottom: 10px;
 }
 
-/* === MENU HORIZONTAL SLIDABLE === */
-.menu-nav-scrollable {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  padding: 10px 0;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
-  background-color: transparent;
-}
-
-.menu-nav-scrollable a {
-  color: white !important;
-  text-decoration: none;
-  font-weight: 500;
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  background: none !important;
-  border: none !important;
-  padding: 6px 10px;
-}
-
-.menu-nav-scrollable a:hover {
-  color: #FFD700 !important;
-}
-
-/* === SÉPARATEUR OR === */
-.header-separator {
-  width: 100%;
+/* Ligne or */
+.divider-or {
   height: 3px;
   background-color: #FFD700;
+  width: 100%;
   margin-top: 10px;
 }
 
-/* === VERSION PC === */
+/* Menu horizontal glissable mobile */
+.menu-scroll {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 20px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.menu-scroll a {
+  color: white;
+  text-decoration: none;
+  scroll-snap-align: start;
+  padding: 5px 10px;
+  flex: 0 0 auto;
+}
+
+.menu-scroll a:hover {
+  color: #FFD700;
+}
+
+/* Version PC */
 @media (min-width: 768px) {
-  .header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .site-title {
-    text-align: left;
-    font-size: 26px;
-    margin-bottom: 0;
-  }
-
-  .menu-nav-scrollable {
+  .menu-scroll {
     overflow: visible;
+    justify-content: flex-end;
     white-space: normal;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 30px;
-    padding: 0;
   }
 }
