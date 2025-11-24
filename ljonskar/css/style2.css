@@ -1,143 +1,41 @@
-/* ========== GLOBAL ========== */
-body {
-  margin: 0;
-  font-family: 'Viking', sans-serif;
-  background-color: #000;
-  color: #fff;
-}
+/* ========== STYLES GÉNÉRAUX ========== */ body { margin: 0; font-family: 'Viking', sans-serif; background-color: #000; color: #fff; }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
+img { max-width: 100%; height: auto; display: block; }
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
+a { text-decoration: none; color: inherit; }
 
-/* ========== HEADER ========== */
-.header {
-  background-color: #000;
-}
+/* ========== HEADER ========== */ .header { background-color: #000; border-bottom: 1px solid #444; position: sticky; top: 0; z-index: 1000; }
 
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-}
+.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; flex-wrap: wrap; }
 
-.site-title {
-  font-size: 24px;
-  color: gold;
-  font-weight: bold;
-}
+.site-title { font-size: 24px; color: gold; font-weight: bold; }
 
-.btn-connexion {
-  border: 2px solid gold;
-  color: gold;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-weight: bold;
-  background: transparent;
-  margin-right: 10px;
-}
+.btn-connexion { border: 2px solid gold; color: gold; padding: 6px 10px; border-radius: 6px; font-weight: bold; background: transparent; margin-left: 10px; }
 
-.burger {
-  font-size: 28px;
-  background: none;
-  border: 2px solid gold;
-  color: gold;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-}
+.burger { font-size: 28px; background: none; border: 2px solid gold; color: gold; padding: 6px 10px; border-radius: 6px; cursor: pointer; display: none; /* masqué sur PC */ }
 
-/* ========== NAVIGATION SLIDE ========== */
-.navbar {
-  display: none;
-  flex-direction: column;
-  background-color: #111;
-  padding: 20px;
-}
+/* ========== MENU NAVBAR PC ========== */ .navbar { display: flex; }
 
-.navbar.show {
-  display: flex;
-}
+.nav-links { list-style: none; padding: 0; margin: 0; display: flex; gap: 20px; }
 
-.nav-links {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+.nav-links li a { color: white; font-weight: bold; padding: 5px 10px; transition: background 0.3s ease; }
 
-.nav-links li {
-  margin: 10px 0;
-}
+.nav-links li a:hover { background-color: gold; color: black; border-radius: 4px; }
 
-.nav-links a {
-  color: white;
-  font-size: 18px;
-}
+/* ========== MENU SLIDE MOBILE ========== */ .navbar-mobile { display: none; flex-direction: column; background-color: #111; padding: 20px; }
 
-/* ========== CHAÎNE ========== */
-.chaine-separatrice {
-  text-align: center;
-  padding: 10px;
-  background-color: black;
-}
+.navbar-mobile.show { display: flex; }
 
-/* ========== BANNIÈRE ========== */
-.banniere {
-  text-align: center;
-  background-color: black;
-  padding: 30px 0;
-}
+/* ========== CHAÎNE ========== */ .chaine-separatrice { text-align: center; padding: 10px; background-color: black; }
 
-.banniere img {
-  max-width: 100%;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow:
-    0 0 60px 20px rgba(255, 215, 0, 0.4),
-    0 0 120px 40px rgba(255, 215, 0, 0.25),
-    0 0 200px 60px rgba(255, 215, 0, 0.15);
-}
+/* ========== BANNIÈRE ========== */ .banniere { text-align: center; background-color: black; padding: 30px 0; }
 
-/* ========== CONTENU ========== */
-main.contenu {
-  text-align: center;
-  padding: 20px;
-}
+.banniere img { max-width: 100%; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 0 60px 20px rgba(255, 215, 0, 0.4), 0 0 120px 40px rgba(255, 215, 0, 0.25), 0 0 200px 60px rgba(255, 215, 0, 0.15); }
 
-main h1 {
-  font-size: 2em;
-  margin-bottom: 10px;
-  color: gold;
-}
+/* ========== CONTENU ========== */ main.contenu { text-align: center; padding: 20px; }
 
-/* ========== FOOTER ========== */
-.footer {
-  text-align: center;
-  padding: 20px;
-  font-size: 0.9em;
-  color: #888;
-}
+main h1 { font-size: 2em; margin-bottom: 10px; color: gold; }
 
-/* ========== RESPONSIVE ========== */
-@media (min-width: 769px) {
-  .navbar {
-    display: flex !important;
-    flex-direction: row;
-    justify-content: center;
-    background-color: #000;
-    padding: 10px 0;
-  }
+/* ========== FOOTER ========== */ .footer { text-align: center; padding: 20px; font-size: 0.9em; color: #888; }
 
-  .burger {
-    display: none;
-  }
-}
+/* ========== RESPONSIVE MOBILE ========== */ @media (max-width: 768px) { .navbar { display: none; } .burger { display: inline-block; } .btn-connexion { order: 2; margin-top: 10px; } .top-bar { flex-direction: column; align-items: flex-start; } .site-title { font-size: 20px; } }
