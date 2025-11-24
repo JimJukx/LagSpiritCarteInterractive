@@ -6,23 +6,34 @@
 .site-title {
   font-family: 'Viking', serif;
   color: #FFD700;
+  font-size: 36px;
   text-align: left;
-  margin: 0;
-  font-size: 36px; /* Taille fixe sur PC */
 }
 
-/* Tablette : moins de 1024px */
-@media screen and (max-width: 1024px) {
-  .site-title {
-    font-size: 28px;
-  }
+/* Affiché par défaut (PC/tablette) */
+.titre-pc {
+  display: inline;
 }
 
-/* Mobile : moins de 600px */
+/* Masqué par défaut */
+.titre-mobile {
+  display: none;
+}
+
+/* === VERSION MOBILE === */
 @media screen and (max-width: 600px) {
   .site-title {
-    font-size: 22px;
     text-align: center;
+    font-size: 22px;
+    line-height: 1.3;
+  }
+
+  .titre-pc {
+    display: none;
+  }
+
+  .titre-mobile {
+    display: inline;
   }
 }
 /* Container header */
