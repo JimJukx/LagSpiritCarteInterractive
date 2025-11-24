@@ -5,11 +5,11 @@
 }
 .site-title {
   font-family: 'Viking', serif;
-  color: gold;
-  font-size: 22px;
-  padding: 10px 20px;
+  color: #FFD700;
+  text-align: left;
+  margin: 0;
+  font-size: clamp(20px, 6vw, 48px);
 }
-
 /* Container header */
 .custom-header {
   width: 100%;
