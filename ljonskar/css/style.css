@@ -104,6 +104,23 @@ body {
 /* ==========================================
    BANNIÈRE PRINCIPALE
    ========================================== */
+.banniere {
+  display: flex;
+  justify-content: center;       /* Centrer l’image horizontalement */
+  align-items: center;           /* Centrer verticalement si hauteur fixe */
+  background-color: black;       /* Fond noir autour de l’image */
+  padding: 20px;                 /* Espace pour le cadre doré (facultatif) */
+  border: 4px solid gold;        /* Cadre doré */
+  box-sizing: border-box;
+}
+
+.banniere img {
+  max-width: 100%;               /* L’image ne dépasse pas la largeur */
+  height: auto;                  /* Hauteur automatique pour garder les proportions */
+  display: block;
+}
+
+
 .banniere img {
   width: 100%;
   height: auto;
