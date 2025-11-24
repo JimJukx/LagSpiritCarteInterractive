@@ -234,3 +234,35 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // === Menu burger mobile ===
+  const burger = document.querySelector('.burger');
+  if (burger) {
+    burger.addEventListener('click', function () {
+      document.querySelector('.nav-mobile').classList.toggle('open');
+    });
+  }
+
+  // === Lien actif ===
+  const currentPath = window.location.pathname.replace(/\/$/, ''); // ex : /galerie
+  const links = document.querySelectorAll("nav a");
+
+  links.forEach(link => {
+    const linkPath = new URL(link.href).pathname.replace(/\/$/, '');
+
+    // Cas spécial accueil
+    if ((currentPath === '' || currentPath === '/index.html') && (linkPath === '' || linkPath === '/index.html')) {
+      link.classList.add('active');
+    }
+
+    // Pour les autres pages
+    else if (linkPath === currentPath) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
