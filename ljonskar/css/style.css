@@ -131,3 +131,62 @@ main.contenu {
   margin-top: 60px;
   font-size: 14px;
 }
+
+/* ==========================================
+   RÉGLAGES GÉNÉRAUX
+   ========================================== */
+.formulaire-connexion {
+  max-width: 400px;
+  margin: 0 auto;
+  margin-top: 40px;
+  background-color: #111;
+  padding: 30px;
+  border-radius: 10px;
+  border: 1px solid #CBA135;
+}
+
+.formulaire-connexion h1 {
+  color: #CBA135;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #444;
+  border-radius: 5px;
+  background-color: #222;
+  color: #fff;
+}
+
+.form-options {
+  margin-bottom: 15px;
+  text-align: left;
+  color: #ccc;
+}
+
+.btn-envoyer {
+  background-color: #CBA135;
+  color: #000;
+  padding: 10px 20px;
+  border: none;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+.btn-envoyer:hover {
+  background-color: #e0b647;
+}
