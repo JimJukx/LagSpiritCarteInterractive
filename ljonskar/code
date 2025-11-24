@@ -1,3 +1,37 @@
+<style>
+  @font-face {
+    font-family: 'Viking';
+    src: url('https://jonskar.page.gd/wp-content/uploads/fonts/viking.ttf') format('truetype');
+  }
+
+  .site-title {
+    font-family: 'Viking', sans-serif;
+    font-size: 28px;
+    color: white;
+  }
+
+  .main-nav ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    padding: 0;
+  }
+
+  .main-nav a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+  }
+
+  .custom-header {
+    background-color: black;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+</style>
 
 <header class="custom-header">
   <div class="logo-title">
