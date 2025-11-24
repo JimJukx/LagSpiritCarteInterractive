@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!DOCTYPE html><html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,62 +6,37 @@
   <link rel="stylesheet" href="css/style.css" />
   <script src="js/menu.js" defer></script>
 </head>
-<body>
+<body>  <!-- ========== HEADER ========== -->  <header class="header"><!-- Titre du site -->
+<div class="top-bar">
+  <div class="site-title">Lag Spirit MC - Chapitre Ljonskar</div>
+  <a href="connexion.html" class="btn-connexion">Se connecter</a>
+  <button class="burger" onclick="toggleMenu()">&#9776;</button>
+</div>
 
-  <!-- ========== HEADER ========== -->
-  <header class="header">
+<!-- Menu slide (slide-in) -->
+<nav class="navbar-slide" id="navbar-slide">
+  <ul class="nav-links">
+    <li><a href="index.html">Accueil</a></li>
+    <li><a href="evenements.html">Événements</a></li>
+    <li><a href="galerie.html">Galerie</a></li>
+    <li><a href="boutique.html">Boutique</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+</nav>
 
-    <!-- Titre du site -->
-    <div class="top-bar">
-      <div class="site-title">Lag Spirit MC - Chapitre Ljonskar</div>
-    </div>
-
-    <!-- Barre mobile : burger + bouton connexion -->
-    <div class="nav-bar-mobile">
-      <button class="burger" onclick="toggleMenu()">&#9776;</button>
-      <a href="connexion.html" class="btn-connexion">Se connecter</a>
-    </div>
-
-    <!-- Menu principal -->
-    <nav class="navbar">
-      <ul class="nav-links">
-        <li><a href="index.html">Accueil</a></li>
-        <li><a href="evenements.html">Événements</a></li>
-        <li><a href="galerie.html">Galerie</a></li>
-        <li><a href="boutique.html">Boutique</a></li>
-        <li><a href="contact.html">Contact</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- ========== CHAÎNE ========== -->
-  <div class="chaine-separatrice">
+  </header>  <!-- ========== CHAÎNE ========== -->  <div class="chaine-separatrice">
     <img src="images/chaine.png" alt="Chaîne de séparation" />
-  </div>
-
-  <!-- ========== BANNIÈRE ========== -->
-  <section class="banniere">
+  </div>  <!-- ========== BANNIÈRE ========== -->  <section class="banniere">
     <img src="images/banniere.png" alt="Bannière Lag Spirit MC" />
-  </section>
-
-  <!-- ========== CONTENU ========== -->
-  <main class="contenu">
+  </section>  <!-- ========== CONTENU ========== -->  <main class="contenu">
     <h1>Bienvenue chez Lag Spirit MC</h1>
     <p>Contenu à venir...</p>
-  </main>
-
-  <!-- ========== FOOTER ========== -->
-  <footer class="footer">
+  </main>  <!-- ========== FOOTER ========== -->  <footer class="footer">
     <p>&copy; Lag Spirit MC - Tous droits réservés</p>
-  </footer>
-
-  <!-- ========== JS du menu burger (minimal) ========== -->
-  <script>
+  </footer>  <!-- ========== JS du menu slide ========== -->  <script>
     function toggleMenu() {
-      const nav = document.querySelector('.navbar');
-      nav.style.display = nav.style.display === 'block' ? 'none' : 'block';
+      const nav = document.getElementById('navbar-slide');
+      nav.classList.toggle('active');
     }
-  </script>
-
-</body>
+  </script></body>
 </html>
