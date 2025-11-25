@@ -27,3 +27,33 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const original = document.querySelector(".nav-mobile");
+    if (!original) return;
+
+    // Création du clone OR
+    const clone = original.cloneNode(true);
+    clone.classList.add("nav-mobile-clone");
+    document.body.appendChild(clone);
+
+    const burger = document.querySelector(".burger");
+
+    // Ouvrir / fermer le panneau OR
+    burger.addEventListener("click", () => {
+        clone.classList.toggle("open");
+    });
+
+    // Ferme quand on clique un lien
+    clone.querySelectorAll("a").forEach(a => {
+        a.addEventListener("click", () => {
+            clone.classList.remove("open");
+        });
+    });
+
+});
+</script>
