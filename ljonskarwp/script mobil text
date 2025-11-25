@@ -57,3 +57,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+
+
+
+/* MENU MOBILE OR – ULTRA SIMPLE */
+#menu-or {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(255, 215, 0, 0.95) !important; /* OR */
+    z-index: 999999999999999 !important; /* PAR-DESSUS TOUT */
+    display: none;
+    padding-top: 120px;
+    text-align: center;
+}
+
+#menu-or ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#menu-or li {
+    padding: 20px 0;
+}
+
+#menu-or a {
+    font-family: 'Viking', serif;
+    font-size: 26px;
+    color: black;
+    text-decoration: none;
+    font-weight: bold;
+}
