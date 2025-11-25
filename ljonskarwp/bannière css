@@ -97,3 +97,31 @@
         linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 0 0 / 40px 100% no-repeat,
         linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 100% 0 / 40px 100% no-repeat;
 }
+
+
+
+
+/* Force absolument tout le header au-dessus */
+.elementor-location-header,
+.elementor-location-header * {
+    position: relative !important;
+    z-index: 999999 !important;
+}
+
+/* Menu burger + dropdown au top */
+.elementor-menu-toggle,
+.elementor-nav-menu--dropdown,
+.elementor-nav-menu--dropdown li,
+.elementor-nav-menu--dropdown a {
+    position: relative !important;
+    z-index: 1000000 !important;
+}
+
+/* La bannière doit rester en dessous */
+.home-banner,
+.banner-wrapper,
+.home-banner *,
+.banner-wrapper * {
+    position: relative !important;
+    z-index: 1 !important;
+}
