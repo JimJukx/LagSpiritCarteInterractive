@@ -1,0 +1,67 @@
+<style>
+  .custom-footer {
+    width: 100%;
+    background-color: #111;
+    color: white;
+    padding: 20px 10px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .footer-separator {
+    height: 4px;
+    background-color: #FFD700;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .footer-message {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-bottom: 10px;
+  }
+
+  .footer-icons {
+    margin: 10px 0;
+  }
+
+  .footer-icons img {
+    width: 24px;
+    height: 24px;
+    margin: 0 8px;
+    vertical-align: middle;
+  }
+
+  .footer-copy {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 10px;
+  }
+
+  .footer-link {
+    color: #FFD700;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .footer-link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<footer class="custom-footer">
+  <div class="footer-separator"></div>
+  <div class="footer-message">
+    <p>Nos membres sont issus des forces de l'ordre et agissent uniquement en tant que bénévoles. Le Lag Spirit MC s'engage contre le harcèlement scolaire sans jamais se substituer aux autorités compétentes.</p>
+    <a href="https://lagspiritmc-france.fr" target="_blank" class="footer-link">Lag Spirit MC France</a>
+    <div class="footer-icons">
+      <a href="https://linktr.ee/tonprofil" target="_blank"><img src="/wp-content/uploads/icons/linktree-icon.png" alt="Linktree"></a>
+      <a href="https://facebook.com/tonprofil" target="_blank"><img src="/wp-content/uploads/icons/facebook-icon.png" alt="Facebook"></a>
+      <a href="https://instagram.com/tonprofil" target="_blank"><img src="/wp-content/uploads/icons/instagram-icon.png" alt="Instagram"></a>
+      <a href="https://youtube.com/tonprofil" target="_blank"><img src="/wp-content/uploads/icons/youtube-icon.png" alt="YouTube"></a>
+    </div>
+  </div>
+  <p class="footer-copy">&copy; Lag Spirit MC - Chapitre Ljønskar - Tous droits réservés</p>
+</footer>
