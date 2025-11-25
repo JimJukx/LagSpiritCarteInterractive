@@ -91,3 +91,30 @@ document.addEventListener("DOMContentLoaded", () => {
     text-decoration: none;
     font-weight: bold;
 }
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const menu = document.querySelector('.nav-mobile');
+  if (!menu) return;
+
+  // Clone du menu mobile
+  const clone = menu.cloneNode(true);
+  clone.id = "menu-or";               // ID pour le styler facilement
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "0";
+  clone.style.width = "100vw";
+  clone.style.height = "100vh";
+  clone.style.zIndex = "999999999";   // Devant tout
+  clone.style.display = "none";       // Caché au début
+
+  document.body.appendChild(clone);
+
+  // Ouvre / ferme
+  document.querySelector('.burger').onclick = () => {
+    clone.style.display =
+      clone.style.display === "none" ? "block" : "none";
+  };
+});
+</script>
