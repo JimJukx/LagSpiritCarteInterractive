@@ -79,3 +79,32 @@ document.addEventListener('click', function(e) {
 
 
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    // On récupère ton menu mobile original
+    const original = document.querySelector(".nav-mobile");
+    if (!original) return;
+
+    // On crée un clone 100% indépendant, ID = menu-or
+    const menuOr = original.cloneNode(true);
+    menuOr.id = "menu-or";
+    document.body.appendChild(menuOr);
+
+    // On écoute le clic sur le burger
+    const burger = document.querySelector(".burger");
+    burger.addEventListener("click", () => {
+        menuOr.style.display = (menuOr.style.display === "block") ? "none" : "block";
+    });
+
+    // Quand on clique un lien → on ferme
+    menuOr.querySelectorAll("a").forEach(link => {
+        link.addEventListener("click", () => {
+            menuOr.style.display = "none";
+        });
+    });
+
+});
+</script>
+
+
