@@ -1,0 +1,282 @@
+/* Fond noir global */
+body {
+  background-color: black;
+  margin: 0;
+  padding: 0;
+}
+
+.page-title,
+.entry-title,
+.elementor-heading-title {
+	display: none !important;
+}
+
+/*===================================
+Header
+===================================*/
+/* Police Viking pour le titre uniquement */
+@font-face {
+  font-family: 'Viking';
+  src: url('/wp-content/uploads/fonts/viking.ttf') format('truetype');
+}
+.site-title {
+  font-family: 'Viking', serif;
+  color: #FFD700;
+  text-align: left;	
+  font-size: 2vw;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin: 0;
+}
+
+/* Affiché par défaut (PC/tablette) */
+.titre-pc {
+  display: inline;
+}
+
+/* Masqué par défaut */
+.titre-mobile {
+  display: none;
+}
+
+/* === VERSION MOBILE === */
+@media screen and (max-width: 600px) {
+  .site-title {
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .titre-pc {
+    display: none;
+  }
+
+  .titre-mobile {
+    display: inline;
+  }
+}
+/* Container header */
+.custom-header {
+	position: relative;
+	z-index: 999999 !important;
+  width: 100%;
+  background: black;
+  color: white;
+}
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+}
+
+/* Menu desktop */
+.nav-desktop a:hover,
+.nav-mobile a:hover {
+	color: #ffffff;
+	background-color: rgba(255, 255, 255, 0.1);
+	transition: all 0.3s ease;
+}
+/*Position et z-index du menu mobile */
+.nav-mobile {
+	position: absolute;
+	z-index: 1000000 !important;
+	top: 100%;
+	right: 0;
+}
+.nav-desktop a.active,
+.nav-mobile a.active{
+	color: #FFD700 !important;
+	font-weight: bold;
+}
+.nav-desktop ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-desktop ul li {
+  margin-left: 20px;
+}
+.nav-desktop ul li a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* Burger icon */
+.burger {
+  display: none;
+  background: none;
+  color: gold;
+  font-size: 28px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Menu mobile hidden by default */
+.nav-mobile {
+  display: none;
+  background: #111;
+}
+.nav-mobile.open {
+  display: block;
+}
+.nav-mobile ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+}
+.nav-mobile ul li {
+  padding: 10px 20px;
+}
+.nav-mobile ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+/* Ligne or */
+.header-separator {
+  height: 7px;
+  background: gold;
+  width: 100%;
+}
+
+/* Responsive mobile */
+@media screen and (max-width: 768px) {
+  .nav-desktop {
+    display: none;
+  }
+  .burger {
+    display: block;
+  }
+  .header-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .site-title {
+    width: 70%;
+  }
+}
+
+/*===================================
+Footer
+===================================*/
+/* Footer général */
+.custom-footer {
+  background: black;
+  color: white;
+  width: 100%;
+	box-sizing: border-box;
+}
+.footer-container {
+  width: 100%;
+	display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 0px;
+}
+/* Trait or en haut */
+.footer-separator {
+  height: 7px;
+  background-color: gold;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Contenu principal : bulle + lien + icônes */
+.footer-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+/* Lien vers le site national */
+.footer-france a {
+	font-family: 'Viking', serif;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 14px;
+	margin-left: 10px;
+}
+
+/* Icônes à droite */
+.footer-icons a {
+  margin-right: 8px;
+}
+
+.footer-icons img {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
+}
+
+/* Droits réservés */
+.footer-copy {
+  text-align: center;
+  font-size: 13px;
+  color: #777;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+	.footer-copy{
+		font-size: clamp(10px, 2.5vw, 13px);
+	}
+}
+
+
+/* Conteneur bannière */
+/* Header au-dessus du contenu */
+.elementor-location-header {
+    position: relative;
+    z-index: 1000;
+}
+
+/* La bannière reste en-dessous */
+.home-banner {
+    position: relative;
+    z-index: 1;
+}
+.home-banner {
+    width: 100%;
+    display: flex;
+		justify-content: center;
+		align-content: center;
+}
+.banner-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.banner-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Contour fondu fin sur 4 côtés */
+.banner-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 0 0 / 100% 120px no-repeat,
+        linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 0 100% / 100% 120px no-repeat,
+        linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 0 0 / 120px 100% no-repeat,
+        linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0) 30%) 100% 0 / 120px 100% no-repeat;
+}
