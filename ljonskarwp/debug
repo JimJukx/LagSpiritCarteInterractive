@@ -1,0 +1,9 @@
+/* DEBUG : Forcer le burger visible sur PC */
+.burger {
+    display: block !important;
+}
+
+/* DEBUG : Cacher le menu desktop pour le test */
+.nav-desktop {
+    display: none !important;
+}
