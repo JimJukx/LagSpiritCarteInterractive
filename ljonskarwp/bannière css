@@ -125,3 +125,17 @@
     position: relative !important;
     z-index: 1 !important;
 }
+
+
+
+/* Header au-dessus du contenu */
+.elementor-location-header {
+    position: relative;
+    z-index: 1000;
+}
+
+/* La bannière reste en-dessous */
+.home-banner {
+    position: relative;
+    z-index: 1;
+}
