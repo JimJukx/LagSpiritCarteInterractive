@@ -64,3 +64,12 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+<script>
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.burger')) {
+        document.querySelector('.nav-mobile').classList.toggle('open');
+    }
+});
+</script>
