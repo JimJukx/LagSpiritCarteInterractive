@@ -34,3 +34,31 @@ function ljonskar_register_capabilities() {
 }
 
 add_action('init', 'ljonskar_register_capabilities');
+
+// ===== Shortcode [ljonskar_roles] =====
+function ljonskar_roles_shortcode() {
+
+    if (!is_user_logged_in()) {
+        return "<p>Vous devez être connecté.</p>";
+    }
+
+    $user = wp_get_current_user();
+
+    if (!user_can($user, 'manage_ljonskar_roles')) {
+        return "<p>Vous n’avez pas la permission d'accéder à cette page.</p>";
+    }
+
+    ob_start();
+
+    ?>
+    <h2>Gestion des rôles Ljønskar</h2>
+    <p>Sélectionnez un membre et attribuez-lui des permissions.</p>
+
+    <?php
+    // On charge le template plus tard
+    include plugin_dir_path(__FILE__) . "../templates/dashboard-roles.php";
+
+    return ob_get_clean();
+}
+
+add_shortcode('ljonskar_roles', 'ljonskar_roles_shortcode');
