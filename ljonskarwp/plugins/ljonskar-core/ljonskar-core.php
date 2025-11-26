@@ -1,25 +1,26 @@
 <?php
 /**
  * Plugin Name: Ljonskar Core
- * Description: Coeur des fonctions membres Ljønskar (rôles).
- * Version: 0.1.0
- * Author: Jimmy CATTIAU
+ * Description: Fonctionnalités de base du site Ljønskar.
+ * Version: 1.0
+ * Author: Jimmy
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // sécurité : pas d'accès direct
+// Sécurité
+if (!defined('ABSPATH')) exit;
+
+// AUTOCHARGEMENT DES MODULES
+require_once __DIR__ . '/includes/roles.php';
+
+// HANDLERS
+require_once __DIR__ . '/handlers/roles-handler.php';
+
+// CHARGER LES TEMPLATES DU TABLEAU DE BORD
+function ljonskar_render_template($template_name) {
+    $file = __DIR__ . '/templates/' . $template_name . '.php';
+    if (file_exists($file)) {
+        include $file;
+    } else {
+        echo "<h2>Template introuvable : $template_name</h2>";
+    }
 }
-
-// Chemin du plugin
-define( 'LJONSKAR_CORE_PATH', plugin_dir_path( __FILE__ ) );
-
-// On charge le fichier des rôles
-require_once LJONSKAR_CORE_PATH . 'includes/roles.php';
-
-/**
- * À l’activation du plugin : création des rôles.
- */
-function ljonskar_core_activate() {
-    ljonskar_register_roles();
-}
-register_activation_hook( __FILE__, 'ljonskar_core_activate' );
