@@ -1,16 +1,25 @@
 <?php
 /**
  * Plugin Name: Ljonskar Core
- * Description: Fonctionnalités principales du site (rôles, profils, événements, administration).
- * Version: 1.0
+ * Description: Coeur des fonctions membres Ljønskar (rôles).
+ * Version: 0.1.0
  * Author: Jimmy CATTIAU
  */
 
-// Sécurité : empêcher accès direct
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // sécurité : pas d'accès direct
+}
 
-// Définir le chemin du plugin
-define('LJONSKAR_CORE_PATH', plugin_dir_path(__FILE__));
+// Chemin du plugin
+define( 'LJONSKAR_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
-// Charger automatiquement les fichiers du dossier includes
-require_once LJONSKAR_CORE_PATH . 'includes/loader.php';
+// On charge le fichier des rôles
+require_once LJONSKAR_CORE_PATH . 'includes/roles.php';
+
+/**
+ * À l’activation du plugin : création des rôles.
+ */
+function ljonskar_core_activate() {
+    ljonskar_register_roles();
+}
+register_activation_hook( __FILE__, 'ljonskar_core_activate' );
