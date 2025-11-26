@@ -1,0 +1,21 @@
+ljonskar-core/
+│
+├── ljonskar-core.php     ← fichier principal du plugin
+│
+├── includes/
+│   ├── loader.php
+│   ├── roles.php
+│   ├── users.php
+│   ├── dashboard.php
+│   └── invitations.php
+│
+├── handlers/
+│   ├── invite-handler.php
+│   ├── roles-handler.php
+│   └── profile-handler.php
+│
+└── templates/
+    ├── dashboard.php
+    ├── dashboard-roles.php
+    ├── dashboard-evenements.php
+    └── dashboard-profil.php
