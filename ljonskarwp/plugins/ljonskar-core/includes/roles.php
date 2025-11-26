@@ -1,78 +1,36 @@
 <?php
-// sécurité
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
 
-/**
- * Crée les rôles Ljønskar.
- * Appelé à l’activation du plugin.
- */
-function ljonskar_register_roles() {
+// ===== Création des capacités personnalisées =====
+function ljonskar_register_capabilities() {
 
-    // Rôle de base pour les membres du club
-    add_role(
-        'lj_member',
-        'Membre Ljønskar',
-        array(
-            'read' => true,
-        )
-    );
+    $caps = [
+        'manage_ljonskar_roles',
+        'manage_ljonskar_events',
+        'manage_ljonskar_gallery',
+        'manage_ljonskar_shop'
+    ];
 
-    // Rôle : peut gérer les rôles
-    add_role(
-        'lj_roles_manager',
-        'Gestion des rôles',
-        array(
-            'read'           => true,
-            'lj_manage_roles' => true,
-        )
-    );
-
-    // Rôle : peut gérer les événements
-    add_role(
-        'lj_events_manager',
-        'Gestion des événements',
-        array(
-            'read'             => true,
-            'lj_manage_events' => true,
-        )
-    );
-
-    // Rôle : peut gérer la galerie
-    add_role(
-        'lj_gallery_manager',
-        'Gestion de la galerie',
-        array(
-            'read'              => true,
-            'lj_manage_gallery' => true,
-        )
-    );
-
-    // Rôle : peut gérer la boutique
-    add_role(
-        'lj_shop_manager',
-        'Gestion de la boutique',
-        array(
-            'read'           => true,
-            'lj_manage_shop' => true,
-        )
-    );
-}
-
-/**
- * Donne toutes les capacités Ljønskar à l’admin WordPress.
- * (toi, le super admin)
- */
-function ljonskar_add_caps_to_admin() {
-    $admin = get_role( 'administrator' );
-    if ( ! $admin ) {
-        return;
+    // On ajoute ces caps à l'admin WordPress (super admin)
+    $admin = get_role('administrator');
+    if ($admin) {
+        foreach ($caps as $cap) {
+            $admin->add_cap($cap);
+        }
     }
 
-    $admin->add_cap( 'lj_manage_roles' );
-    $admin->add_cap( 'lj_manage_events' );
-    $admin->add_cap( 'lj_manage_gallery' );
-    $admin->add_cap( 'lj_manage_shop' );
+    // Création du rôle super-admin Ljønskar (toi uniquement)
+    add_role(
+        'ljonskar_superadmin',
+        'Super Admin Ljønskar',
+        [
+            'read' => true,
+            'edit_posts' => false,
+            'manage_ljonskar_roles' => true,
+            'manage_ljonskar_events' => true,
+            'manage_ljonskar_gallery' => true,
+            'manage_ljonskar_shop' => true
+        ]
+    );
 }
-add_action( 'init', 'ljonskar_add_caps_to_admin' );
+
+add_action('init', 'ljonskar_register_capabilities');
