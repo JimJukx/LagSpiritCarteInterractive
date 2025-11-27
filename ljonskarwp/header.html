@@ -135,3 +135,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   <div class="header-separator"></div>
 </header>
+
+
+
+<nav class="nav-desktop">
+  <ul>
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/evenements">Événements</a></li>
+    <li><a href="/galerie">Galerie</a></li>
+    <li><a href="/boutique">Boutique</a></li>
+    <li><a href="/contact">Contact</a></li>
+
+    <?php if ( is_user_logged_in() ) : 
+        $user = wp_get_current_user();
+    ?>
+        <li><a href="/mon-profil">Mon profil</a></li>
+        <li><a href="<?php echo wp_logout_url( home_url() ); ?>">Déconnexion</a></li>
+        <li class="hello-user">Bonjour, <?php echo $user->user_login; ?></li>
+    <?php else : ?>
+        <li><a href="/connexion">Se connecter</a></li>
+    <?php endif; ?>
+  </ul>
+</nav>
+
+
+<nav class="nav-mobile">
+  <ul>
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/evenements">Événements</a></li>
+    <li><a href="/galerie">Galerie</a></li>
+    <li><a href="/boutique">Boutique</a></li>
+    <li><a href="/contact">Contact</a></li>
+
+    <?php if ( is_user_logged_in() ) : 
+        $user = wp_get_current_user();
+    ?>
+        <li><a href="/mon-profil">Mon profil</a></li>
+        <li><a href="<?php echo wp_logout_url( home_url() ); ?>">Déconnexion</a></li>
+        <li class="hello-user">Bonjour, <?php echo $user->user_login; ?></li>
+    <?php else : ?>
+        <li><a href="/connexion">Se connecter</a></li>
+    <?php endif; ?>
+  </ul>
+</nav>
