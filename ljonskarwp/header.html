@@ -17,7 +17,7 @@
     </nav>
 
     <!-- Burger pour mobile -->
-    <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">&#9776;</button>
+     <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">&#9776;</button>
   </div>
 
   <!-- Menu mobile slide -->
@@ -36,14 +36,29 @@
 </header>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // === Menu burger mobile ===
-  const burger = document.querySelector('.burger');
-  if (burger) {
-    burger.addEventListener('click', function () {
-      document.querySelector('.nav-mobile').classList.toggle('open');
-    });
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  const menu = document.querySelector('.nav-mobile');
+  if (!menu) return;
+
+  // Clone du menu mobile
+  const clone = menu.cloneNode(true);
+  clone.id = "menu-or";               // ID pour le styler facilement
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "0";
+  clone.style.width = "100vw";
+  clone.style.height = "100vh";
+  clone.style.zIndex = "999999999";   // Devant tout
+  clone.style.display = "none";       // Caché au début
+
+  document.body.appendChild(clone);
+
+  // Ouvre / ferme
+  document.querySelector('.burger').onclick = () => {
+    clone.style.display =
+      clone.style.display === "none" ? "block" : "none";
+  };
+});
 
   // === Lien actif ===
   const currentPath = window.location.pathname.replace(/\/$/, ''); // ex : /galerie
@@ -64,47 +79,3 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
-
-
-<script>
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.burger')) {
-        document.querySelector('.nav-mobile').classList.toggle('open');
-    }
-});
-</script>
-
-
-<button class="burger">☰</button>
-
-
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    // On récupère ton menu mobile original
-    const original = document.querySelector(".nav-mobile");
-    if (!original) return;
-
-    // On crée un clone 100% indépendant, ID = menu-or
-    const menuOr = original.cloneNode(true);
-    menuOr.id = "menu-or";
-    document.body.appendChild(menuOr);
-
-    // On écoute le clic sur le burger
-    const burger = document.querySelector(".burger");
-    burger.addEventListener("click", () => {
-        menuOr.style.display = (menuOr.style.display === "block") ? "none" : "block";
-    });
-
-    // Quand on clique un lien → on ferme
-    menuOr.querySelectorAll("a").forEach(link => {
-        link.addEventListener("click", () => {
-            menuOr.style.display = "none";
-        });
-    });
-
-});
-</script>
-
-
