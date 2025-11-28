@@ -461,3 +461,58 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 })();
 </script>
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    /* ========= CLONE MENU MOBILE ========= */
+    const menu = document.querySelector('.nav-mobile');
+    if (menu) {
+        const clone = menu.cloneNode(true);
+        clone.id = "menu-or";
+        clone.style.position = "fixed";
+        clone.style.top = "0";
+        clone.style.left = "0";
+        clone.style.width = "100vw";
+        clone.style.height = "100vh";
+        clone.style.zIndex = "999999999";
+        clone.style.display = "none";
+        document.body.appendChild(clone);
+
+        document.querySelector('.burger').onclick = () => {
+            clone.style.display = clone.style.display === "none" ? "block" : "none";
+        };
+    }
+
+    /* ========= LIEN ACTIF ========= */
+    const currentPath = window.location.pathname.replace(/\/$/, '');
+    const links = document.querySelectorAll("nav a");
+
+    links.forEach(link => {
+        const linkPath = new URL(link.href).pathname.replace(/\/$/, '');
+        if ((currentPath === '' && linkPath === '') || linkPath === currentPath) {
+            link.classList.add('active');
+        }
+    });
+
+    /* ========= GESTION DU LIEN “MON COMPTE” ========= */
+
+    const accountLinks = document.querySelectorAll('#ljonskar-account-link');
+
+    accountLinks.forEach(link => {
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            <?php if (!is_user_logged_in()) : ?>
+                window.location.href = "/connexion";
+            <?php else : ?>
+                window.location.href = "/mon-profil";
+            <?php endif; ?>
+        });
+    });
+
+});
+</script>
