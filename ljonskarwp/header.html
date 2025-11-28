@@ -260,3 +260,40 @@ document.addEventListener("DOMContentLoaded", () => {
     <?php endif; ?>
 })();
 </script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    // URL des pages (à adapter SI besoin)
+    const loginPage = "/mon-profil";      // ta page connexion
+    const profilePage = "/mon-profil";    // ta page profil après connexion
+
+    const accountLink = document.getElementById("ljonskar-account-link");
+
+    // RÉCUPÉRATION ÉTAT CONNEXION WP
+    fetch('/wp-json/wp/v2/users/me', { credentials: 'include' })
+        .then(r => r.json())
+        .then(user => {
+            // Si on reçoit un ID → utilisateur connecté
+            const loggedIn = user && user.id;
+
+            accountLink.addEventListener("click", (e) => {
+                e.preventDefault();
+
+                if (loggedIn) {
+                    window.location.href = profilePage;
+                } else {
+                    window.location.href = loginPage;
+                }
+            });
+        })
+        .catch(() => {
+            // Si API renvoie erreur → pas connecté
+            accountLink.addEventListener("click", (e) => {
+                e.preventDefault();
+                window.location.href = loginPage;
+            });
+        });
+});
+</script>
