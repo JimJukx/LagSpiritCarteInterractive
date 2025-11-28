@@ -314,3 +314,41 @@ document.addEventListener("DOMContentLoaded", () => {
         <?php endif; ?>
     });
 })();
+
+
+
+// ====== GESTION DU LIEN "MON COMPTE" (PC + Mobile) ======
+(function() {
+    // Lien desktop
+    const accountDesktop = document.getElementById('ljonskar-account-link');
+
+    // Lien mobile
+    const accountMobile = document.getElementById('ljonskar-account-link-mobile');
+
+    // Si aucun lien → stop
+    if (!accountDesktop && !accountMobile) return;
+
+    // Fonction de redirection
+    function goAccount() {
+        <?php if (!is_user_logged_in()) : ?>
+            window.location.href = "/connexion";
+        <?php else : ?>
+            window.location.href = "/mon-profil";
+        <?php endif; ?>
+    }
+
+    // Bind des clics
+    if (accountDesktop) {
+        accountDesktop.addEventListener("click", function(e){
+            e.preventDefault();
+            goAccount();
+        });
+    }
+
+    if (accountMobile) {
+        accountMobile.addEventListener("click", function(e){
+            e.preventDefault();
+            goAccount();
+        });
+    }
+})();
