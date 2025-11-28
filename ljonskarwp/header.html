@@ -297,3 +297,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 });
 </script>
+
+
+// ===== Gestion du lien "Mon compte" =====
+(function() {
+    const accountLinks = document.querySelectorAll('#ljonskar-account-link');
+    if (!accountLinks.length) return;
+
+    accountLinks.forEach(link => {
+        <?php if (!is_user_logged_in()) : ?>
+            // pas connecté → page connexion
+            link.href = "/connexion";
+        <?php else : ?>
+            // connecté → page Mon profil
+            link.href = "/mon-profil";
+        <?php endif; ?>
+    });
+})();
