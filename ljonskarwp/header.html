@@ -395,3 +395,69 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const menu = document.querySelector('.nav-mobile');
+  if (!menu) return;
+
+  // Clone du menu mobile
+  const clone = menu.cloneNode(true);
+  clone.id = "menu-or";               // ID pour le styler facilement
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "0";
+  clone.style.width = "100vw";
+  clone.style.height = "100vh";
+  clone.style.zIndex = "999999999";   // Devant tout
+  clone.style.display = "none";       // Caché au début
+
+  document.body.appendChild(clone);
+
+  // Ouvre / ferme
+  document.querySelector('.burger').onclick = () => {
+    clone.style.display =
+      clone.style.display === "none" ? "block" : "none";
+  };
+});
+
+  // === Lien actif ===
+  const currentPath = window.location.pathname.replace(/\/$/, ''); // ex : /galerie
+  const links = document.querySelectorAll("nav a");
+
+  links.forEach(link => {
+    const linkPath = new URL(link.href).pathname.replace(/\/$/, '');
+
+    // Cas spécial accueil
+    if ((currentPath === '' || currentPath === '/index.html') && (linkPath === '' || linkPath === '/index.html')) {
+      link.classList.add('active');
+    }
+
+    // Pour les autres pages
+    else if (linkPath === currentPath) {
+      link.classList.add('active');
+    }
+  });
+});
+document.addEventListener("DOMContentLoaded", function() {
+
+    const accountLink = document.querySelector('#ljonskar-account-link');
+    if (!accountLink) return;
+
+    accountLink.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        // PHP inséré proprement (affiché en HTML final)
+        <?php if (!is_user_logged_in()) : ?>
+            window.location.href = "/connexion";
+        <?php else : ?>
+            window.location.href = "/mon-profil";
+        <?php endif; ?>
+    });
+
+});
+})();
+</script>
