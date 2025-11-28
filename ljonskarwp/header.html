@@ -627,3 +627,57 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 oooooooo
+
+
+
+<header class="custom-header">
+  <div class="header-container">
+    <div class="site-title">
+      <span class="titre-pc">Lag Spirit MC - Chapitre Ljønskar</span>
+      <span class="titre-mobile">Lag Spirit MC<br>Chapitre Ljønskar</span>
+    </div>
+
+    <!-- ===== MENU DESKTOP ===== -->
+    <nav class="nav-desktop">
+      <ul>
+        <li><a href="/">Accueil</a></li>
+        <li><a href="/evenements">Événements</a></li>
+        <li><a href="/galerie">Galerie</a></li>
+        <li><a href="/boutique">Boutique</a></li>
+        <li><a href="/contact">Contact</a></li>
+
+        <!-- 🔥 Lien dynamique Mon compte -->
+        <li>
+          <a href="<?php echo is_user_logged_in() ? '/mon-profil' : '/connexion'; ?>">
+            Mon compte
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- BURGER MOBILE -->
+    <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">
+      &#9776;
+    </button>
+  </div>
+
+  <!-- ===== MENU MOBILE ===== -->
+  <nav class="nav-mobile">
+    <ul>
+      <li><a href="/">Accueil</a></li>
+      <li><a href="/evenements">Événements</a></li>
+      <li><a href="/galerie">Galerie</a></li>
+      <li><a href="/boutique">Boutique</a></li>
+      <li><a href="/contact">Contact</a></li>
+
+      <!-- 🔥 Le même lien dynamique -->
+      <li>
+        <a href="<?php echo is_user_logged_in() ? '/mon-profil' : '/connexion'; ?>">
+          Mon compte
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="header-separator"></div>
+</header>
