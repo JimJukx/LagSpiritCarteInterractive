@@ -242,3 +242,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   <div class="header-separator"></div>
 </header>
+
+
+
+// ====== gestion du lien "Mon compte" ======
+(function() {
+    const accountLink = document.querySelector("a[href='/mon-compte']");
+
+    if (!accountLink) return;
+
+    // Si l'utilisateur n'est PAS connecté → redirection vers connexion
+    <?php if (!is_user_logged_in()) : ?>
+        accountLink.href = "/connexion";
+    <?php else : ?>
+        // Si l'utilisateur est connecté → renvoi vers Mon Profil
+        accountLink.href = "/mon-profil";
+    <?php endif; ?>
+})();
+</script>
