@@ -373,3 +373,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 })();
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const accountLink = document.querySelector('#ljonskar-account-link');
+    if (!accountLink) return;
+
+    accountLink.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        // PHP inséré proprement (affiché en HTML final)
+        <?php if (!is_user_logged_in()) : ?>
+            window.location.href = "/connexion";
+        <?php else : ?>
+            window.location.href = "/mon-profil";
+        <?php endif; ?>
+    });
+
+});
+</script>
