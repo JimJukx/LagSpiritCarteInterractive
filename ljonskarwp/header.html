@@ -681,3 +681,90 @@ oooooooo
 
   <div class="header-separator"></div>
 </header>
+
+
+
+
+----------------------------------------
+
+
+
+
+<header class="custom-header">
+  <div class="header-container">
+    <div class="site-title">
+      <span class="titre-pc">Lag Spirit MC - Chapitre Ljønskar</span>
+      <span class="titre-mobile">Lag Spirit MC<br>Chapitre Ljønskar</span>
+    </div>
+
+    <!-- ===== MENU DESKTOP ===== -->
+    <nav class="nav-desktop">
+      <ul>
+        <li><a href="/">Accueil</a></li>
+        <li><a href="/evenements">Événements</a></li>
+        <li><a href="/galerie">Galerie</a></li>
+        <li><a href="/boutique">Boutique</a></li>
+        <li><a href="/contact">Contact</a></li>
+
+        <!-- 🔥 Lien dynamique Mon compte -->
+        <li>
+          <a href="<?php echo is_user_logged_in() ? '/mon-profil' : '/connexion'; ?>">
+            Mon compte
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- BURGER MOBILE -->
+    <button class="burger" onclick="document.querySelector('.nav-mobile').classList.toggle('open')">
+      &#9776;
+    </button>
+  </div>
+
+  <!-- ===== MENU MOBILE ===== -->
+  <nav class="nav-mobile">
+    <ul>
+      <li><a href="/">Accueil</a></li>
+      <li><a href="/evenements">Événements</a></li>
+      <li><a href="/galerie">Galerie</a></li>
+      <li><a href="/boutique">Boutique</a></li>
+      <li><a href="/contact">Contact</a></li>
+
+      <!-- 🔥 Le même lien dynamique -->
+      <li>
+        <a href="<?php echo is_user_logged_in() ? '/mon-profil' : '/connexion'; ?>">
+          Mon compte
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="header-separator"></div>
+</header>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* ============================
+     1. CLONE DU MENU MOBILE (bulle OR)
+  =============================*/
+  const menu = document.querySelector('.nav-mobile');
+  if (menu) {
+      const clone = menu.cloneNode(true);
+      clone.id = "menu-or";
+      clone.style.position = "fixed";
+      clone.style.top = "0";
+      clone.style.left = "0";
+      clone.style.width = "100vw";
+      clone.style.height = "100vh";
+      clone.style.zIndex = "999999999";
+      clone.style.display = "none";
+
+      document.body.appendChild(clone);
+
+      document.querySelector('.burger').onclick = () => {
+        clone.style.display = (clone.style.display === "none") ? "block" : "none";
+      };
+  }
+});
+</script>
