@@ -1,31 +1,19 @@
-/* Club House = rouge sombre */
-selector .badge-type-type_club_house {
-    background: #8b1e1e;
-    color: #ffffff;
-    border-radius: 4px;
-    padding: 2px 4px;
+/* Club House */
+.event-type-type_club_house {
+    --event-color: #4b9eff; /* bleu */
 }
 
-/* Publique = bleu */
-selector .badge-type-type_publique {
-    background: #145c9e;
-    color: #ffffff;
-    border-radius: 4px;
-    padding: 2px 4px;
+/* Publique */
+.event-type-type_publique {
+    --event-color: #00c853; /* vert */
 }
 
-/* Stand = vert */
-selector .badge-type-type_stand {
-    background: #1e8b2c;
-    color: #ffffff;
-    border-radius: 4px;
-    padding: 2px 4px;
+/* Stand */
+.event-type-type_stand {
+    --event-color: #ffb300; /* jaune */
 }
 
-/* Run = jaune */
-selector .badge-type-type_run {
-    background: #c8a300;
-    color: #000000;
-    border-radius: 4px;
-    padding: 2px 4px;
+/* Run */
+.event-type-type_run {
+    --event-color: #e53935; /* rouge */
 }
