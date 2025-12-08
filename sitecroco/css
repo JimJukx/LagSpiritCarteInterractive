@@ -1,83 +1,31 @@
-/* ===== STYLE GLOBAL DU CALENDRIER ===== */
-
-.jet-calendar {
-    background: #0d0d0d !important;
-    border: 2px solid #d4b048 !important;
-    border-radius: 15px;
-    padding: 20px;
-    color: #fff !important;
+/* Club House = rouge sombre */
+selector .badge-type-type_club_house {
+    background: #8b1e1e;
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
 
-/* Titre du mois */
-.jet-calendar-header {
-    background: transparent !important;
-    color: #d4b048 !important;
-    font-family: "Cinzel", serif;
-    font-size: 22px;
-    font-weight: bold;
-    text-align: center;
+/* Publique = bleu */
+selector .badge-type-type_publique {
+    background: #145c9e;
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
 
-/* Navigation (flèches mois précédent/suivant) */
-.jet-calendar-nav__arrow {
-    color: #d4b048 !important;
-    font-size: 20px;
-}
-.jet-calendar-nav__arrow:hover {
-    color: #fff !important;
-}
-
-/* Jours de la semaine */
-.jet-calendar-week-days {
-    background: rgba(255,255,255,0.07);
-    border-radius: 10px;
-}
-.jet-calendar-week-days div {
-    color: #d4b048 !important;
-    font-weight: bold;
+/* Stand = vert */
+selector .badge-type-type_stand {
+    background: #1e8b2c;
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
 
-/* Cases normales */
-.jet-calendar-day {
-    background: rgba(255,255,255,0.03);
-    border-radius: 10px;
-    transition: .2s ease;
-}
-.jet-calendar-day:hover {
-    background: rgba(212,176,72,0.15);
-    transform: scale(1.05);
-}
-
-/* ===== STYLE DES JOURS AVEC ÉVÉNEMENTS ===== */
-.jet-calendar-day--has-posts {
-    border: 2px solid #d4b048 !important;
-    background: rgba(212,176,72,0.2) !important;
-    font-weight: bold;
-    color: #fff !important;
-}
-
-/* ===== COULEURS PAR TYPE D'ÉVÉNEMENT ===== */
-
-/* Club House */
-.jet-calendar-day[data-type_evenement="type_club_house"] {
-    border-color: #d4b048 !important;
-    background: rgba(212,176,72,0.3) !important;
-}
-
-/* Événement Public */
-.jet-calendar-day[data-type_evenement="type_publique"] {
-    border-color: #3fa9f5 !important;
-    background: rgba(63,169,245,0.25) !important;
-}
-
-/* Stand */
-.jet-calendar-day[data-type_evenement="type_stand"] {
-    border-color: #00c853 !important;
-    background: rgba(0,200,83,0.25) !important;
-}
-
-/* Run */
-.jet-calendar-day[data-type_evenement="type_run"] {
-    border-color: #ff3b3b !important;
-    background: rgba(255,59,59,0.25) !important;
+/* Run = jaune */
+selector .badge-type-type_run {
+    background: #c8a300;
+    color: #000000;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
