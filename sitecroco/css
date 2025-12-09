@@ -1,19 +1,322 @@
-/* Club House */
-.event-type-type_club_house {
-    --event-color: #4b9eff; /* bleu */
-}
+<div id="ls-calendar-wrapper">
+  <div id="ls-calendar-header">
+    <button type="button" id="ls-cal-prev">❮</button>
+    <span id="ls-cal-month-label"></span>
+    <button type="button" id="ls-cal-next">❯</button>
+  </div>
 
-/* Publique */
-.event-type-type_publique {
-    --event-color: #00c853; /* vert */
-}
+  <div id="ls-calendar-weekdays">
+    <div>Lu</div><div>Ma</div><div>Me</div><div>Je</div><div>Ve</div><div>Sa</div><div>Di</div>
+  </div>
 
-/* Stand */
-.event-type-type_stand {
-    --event-color: #ffb300; /* jaune */
-}
+  <div id="ls-calendar-grid"></div>
+</div>
 
-/* Run */
-.event-type-type_run {
-    --event-color: #e53935; /* rouge */
-}
+<div id="ls-event-detail">
+  <h2>Événement sélectionné</h2>
+  <p>Clique sur une date colorée dans le calendrier pour afficher l’événement ici.</p>
+</div>
+
+<style>
+  #ls-calendar-wrapper {
+    background:#111;
+    border:1px solid #444;
+    border-radius:12px;
+    padding:10px;
+    color:#f5f5f5;
+    max-width:700px;
+    margin:0 auto 20px auto;
+    font-family:system-ui, sans-serif;
+  }
+  #ls-calendar-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  #ls-cal-month-label {
+    font-weight:bold;
+    text-transform:capitalize;
+  }
+  #ls-cal-prev, #ls-cal-next {
+    background:#222;
+    border:1px solid #666;
+    color:#f5f5f5;
+    border-radius:999px;
+    width:32px;
+    height:32px;
+    cursor:pointer;
+  }
+  #ls-calendar-weekdays {
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    text-align:center;
+    font-size:11px;
+    text-transform:uppercase;
+    margin-bottom:4px;
+    color:#aaa;
+  }
+  #ls-calendar-weekdays div {
+    padding:2px 0;
+  }
+  #ls-calendar-grid {
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:3px;
+  }
+  .ls-cal-cell {
+    min-height:40px;
+    position:relative;
+    font-size:12px;
+    background:#181818;
+    border:1px solid #333;
+    cursor:pointer;
+    border-radius:6px;
+    transition:transform .1s, box-shadow .1s, border-color .1s;
+  }
+  .ls-cal-cell.empty {
+    background:transparent;
+    border:none;
+    cursor:default;
+  }
+  .ls-cal-day-number {
+    position:absolute;
+    top:3px;
+    right:5px;
+    font-size:11px;
+    opacity:.85;
+  }
+  .ls-cal-cell.has-event {
+    border-color:#d4af37;
+    box-shadow:0 0 4px rgba(212,175,55,0.6);
+  }
+  .ls-cal-cell.has-event:hover {
+    transform:scale(1.03);
+    box-shadow:0 0 8px rgba(212,175,55,0.9);
+  }
+  #ls-event-detail {
+    background:#111;
+    border:1px solid #444;
+    border-radius:12px;
+    padding:12px;
+    color:#f5f5f5;
+    max-width:700px;
+    margin:0 auto;
+    font-family:system-ui, sans-serif;
+  }
+  #ls-event-detail h2 {
+    margin-top:0;
+    margin-bottom:8px;
+    color:#d4af37;
+    font-size:16px;
+  }
+  .ls-event-card {
+    border:1px solid rgba(212,175,55,0.6);
+    border-radius:10px;
+    padding:8px 10px;
+    margin-bottom:8px;
+    background:#181818;
+  }
+  .ls-event-type {
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-bottom:4px;
+    color:#000;
+    font-weight:bold;
+  }
+  .ls-event-link {
+    display:inline-block;
+    margin-top:4px;
+    font-size:12px;
+    color:#000;
+    background:#d4af37;
+    padding:3px 8px;
+    border-radius:999px;
+    text-decoration:none;
+  }
+  .ls-event-link:hover {
+    filter:brightness(1.1);
+  }
+  @media (max-width:768px){
+    #ls-calendar-wrapper, #ls-event-detail { max-width:100%; }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  const apiUrl = '/wp-json/jet-engine/v1/query/12'; // ta query ID 12
+
+  // couleur par type d'événement
+  const typeColors = {
+    'type_club_house': '#FFD700', // or
+    'type_publique'  : '#34A853', // vert
+    'type_stand'     : '#4285F4', // bleu
+    'type_run'       : '#FF5722'  // orange
+  };
+
+  const monthNames = [
+    'janvier','février','mars','avril','mai','juin',
+    'juillet','août','septembre','octobre','novembre','décembre'
+  ];
+
+  const grid   = document.getElementById('ls-calendar-grid');
+  const label  = document.getElementById('ls-cal-month-label');
+  const prevBtn= document.getElementById('ls-cal-prev');
+  const nextBtn= document.getElementById('ls-cal-next');
+  const detail = document.getElementById('ls-event-detail');
+
+  let eventsByDate = {};
+  let current = new Date();
+  let currentYear  = current.getFullYear();
+  let currentMonth = current.getMonth(); // 0-11
+
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+
+  function normalizeDate(raw){
+    if (!raw) return null;
+    // timestamp ?
+    if (/^\d+$/.test(raw)) {
+      const d = new Date(parseInt(raw,10)*1000);
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    }
+    // string genre 2025-12-25...
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+
+  function buildEventsIndex(results){
+    eventsByDate = {};
+    (results || []).forEach(item => {
+      const meta = item.meta || item._meta || {};
+      const rawDate = meta.date_evenement || meta._date_evenement || '';
+      const type    = meta.type_evenement || meta._type_evenement || '';
+      const title   = item.post_title || item.title || '';
+      const link    = item.permalink || item._permalink || '#';
+
+      const date = normalizeDate(rawDate);
+      if (!date) return;
+
+      if (!eventsByDate[date]) eventsByDate[date] = [];
+      eventsByDate[date].push({
+        date, type, title, link
+      });
+    });
+  }
+
+  function renderCalendar(year, month){
+    grid.innerHTML = '';
+    label.textContent = monthNames[month] + ' ' + year;
+
+    const first = new Date(year, month, 1);
+    let startDay = first.getDay(); // 0 = dim
+    startDay = (startDay === 0) ? 6 : startDay - 1; // lundi = 0
+
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+
+    // cases vides avant le 1
+    for (let i=0; i<startDay; i++){
+      const cell = document.createElement('div');
+      cell.className = 'ls-cal-cell empty';
+      grid.appendChild(cell);
+    }
+
+    for (let d=1; d<=daysInMonth; d++){
+      const cell = document.createElement('div');
+      cell.className = 'ls-cal-cell';
+
+      const dateStr = year + '-' + pad(month+1) + '-' + pad(d);
+      const events = eventsByDate[dateStr] || [];
+
+      const num = document.createElement('span');
+      num.className = 'ls-cal-day-number';
+      num.textContent = d;
+      cell.appendChild(num);
+
+      if (events.length > 0){
+        const type = events[0].type;
+        const color = typeColors[type] || '#666';
+        cell.style.backgroundColor = color;
+        cell.classList.add('has-event');
+
+        cell.addEventListener('click', function(){
+          showEventsForDate(dateStr);
+        });
+      } else {
+        cell.addEventListener('click', function(){
+          detail.innerHTML = '<h2>Aucun événement</h2><p>Aucun événement pour le ' + d + ' ' + monthNames[month] + '.</p>';
+        });
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  function showEventsForDate(dateStr){
+    const events = eventsByDate[dateStr] || [];
+    if (!events.length) return;
+
+    const d = new Date(dateStr);
+    const human = d.getDate() + ' ' + monthNames[d.getMonth()] + ' ' + d.getFullYear();
+
+    let html = '<h2>Événement(s) du ' + human + '</h2>';
+
+    events.forEach(ev => {
+      let typeLabel = '';
+      switch(ev.type){
+        case 'type_club_house': typeLabel = 'Club House'; break;
+        case 'type_publique'  : typeLabel = 'Événement public'; break;
+        case 'type_stand'     : typeLabel = 'Stand'; break;
+        case 'type_run'       : typeLabel = 'Run / Balade'; break;
+        default               : typeLabel = 'Événement'; break;
+      }
+      const color = typeColors[ev.type] || '#666';
+
+      html += `
+        <div class="ls-event-card">
+          <div class="ls-event-type" style="background:${color}">${typeLabel}</div>
+          <h3>${ev.title}</h3>
+          <p>${human}</p>
+          <a class="ls-event-link" href="${ev.link}">Voir l'événement</a>
+        </div>
+      `;
+    });
+
+    detail.innerHTML = html;
+  }
+
+  function loadEvents(){
+    fetch(apiUrl)
+      .then(r => r.json())
+      .then(data => {
+        const results = data.results || data || [];
+        buildEventsIndex(results);
+        renderCalendar(currentYear, currentMonth);
+      })
+      .catch(err => {
+        console.error('Erreur calendrier:', err);
+        detail.innerHTML = '<h2>Erreur</h2><p>Impossible de charger les événements.</p>';
+      });
+  }
+
+  // navigation
+  prevBtn.addEventListener('click', function(){
+    currentMonth--;
+    if (currentMonth < 0){ currentMonth = 11; currentYear--; }
+    renderCalendar(currentYear, currentMonth);
+  });
+  nextBtn.addEventListener('click', function(){
+    currentMonth++;
+    if (currentMonth > 11){ currentMonth = 0; currentYear++; }
+    renderCalendar(currentYear, currentMonth);
+  });
+
+  // GO
+  loadEvents();
+});
+</script>
