@@ -49,3 +49,13 @@ add_action('admin_init', function () {
 add_action('admin_menu', function () {
     remove_submenu_page('edit.php?post_type=general', 'post-new.php?post_type=general');
 }, 999);
+
+// Hide title field visually for CPT "general" (keep it technically)
+add_action('admin_head', function () {
+    $screen = get_current_screen();
+    if ($screen && $screen->post_type === 'general') {
+        echo '<style>
+            #titlewrap { display: none !important; }
+        </style>';
+    }
+});
