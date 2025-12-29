@@ -1,0 +1,51 @@
+<?php
+/**
+ * Make CPT "general" behave like a single settings page
+ */
+
+add_action('admin_init', function () {
+    if (!is_admin()) return;
+
+    $post_type = 'general';
+    if (!post_type_exists($post_type)) return;
+
+    $posts = get_posts([
+        'post_type'      => $post_type,
+        'post_status'    => ['publish','draft','pending','private'],
+        'posts_per_page' => 2,
+        'orderby'        => 'date',
+        'order'          => 'ASC',
+        'fields'         => 'ids',
+    ]);
+
+    if (count($posts) === 0) {
+        $id = wp_insert_post([
+            'post_type'   => $post_type,
+            'post_title'  => 'Général',
+            'post_status' => 'publish',
+        ]);
+        $posts = [$id];
+    }
+
+    if (count($posts) > 1) {
+        $keep = array_shift($posts);
+        foreach ($posts as $pid) wp_trash_post($pid);
+        $posts = [$keep];
+    }
+
+    $single_id = $posts[0];
+
+    global $pagenow;
+    if ($pagenow === 'edit.php' && ($_GET['post_type'] ?? '') === $post_type) {
+        wp_safe_redirect(admin_url("post.php?post=$single_id&action=edit"));
+        exit;
+    }
+    if ($pagenow === 'post-new.php' && ($_GET['post_type'] ?? '') === $post_type) {
+        wp_safe_redirect(admin_url("post.php?post=$single_id&action=edit"));
+        exit;
+    }
+});
+
+add_action('admin_menu', function () {
+    remove_submenu_page('edit.php?post_type=general', 'post-new.php?post_type=general');
+}, 999);
