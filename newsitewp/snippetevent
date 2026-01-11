@@ -1,0 +1,1324 @@
+
+/**
+ * LAG EVENTS - Page événements 4 zones (fiche + calendrier / listes)
+ * Shortcode: [lag_events_page]
+ */
+
+function lag_events_config() {
+  return [
+    'post_type' => 'evenement',
+
+    // --- MAPPING CHAMPS ACF ---
+    'acf' => [
+      'type'             => 'evenement_type',
+      'datetime'         => 'evenement_date_heure',
+      'lieu'             => 'evenement_lieu',
+      'maps_url'         => 'evenement_lien_google_maps',
+      'affiche'          => 'evenement_affiche',
+      'description'      => 'evenement_description',
+      'inscription'      => 'evenement_inscription',          // none | free | paid
+      'lien_inscription' => 'evenement_lien_inscription',
+      'prix_inscription' => 'evenement_prix_inscription',
+      'lien_annexe'      => 'evenement_lien_annexe',
+
+      // inter-chapitre (nom + ID du chapitre visité)
+      'chapitre_nom'     => 'evenement_chapitre_visite_nom',
+      'chapitre_id'      => 'evenement_chapitre_visite_id',
+    ],
+
+    // --- ACF CHAPITRES (réseaux) ---
+    'chapitre_acf' => [
+      'site'      => 'chapitre_site',
+      'linktree'  => 'chapitre_linktree',
+      'facebook'  => 'chapitre_facebook', // adapte si besoin
+      'instagram' => 'chapitre_instagram',
+      'youtube'   => 'chapitre_youtube',
+      'tiktok'    => 'chapitre_tiktok',
+    ],
+
+    // --- ICONES (ACF dans CPT "general" qui renvoient une URL ou ID/array image) ---
+    'icons_acf' => [
+      'post_type' => 'general',
+      'site'      => 'general_icone_site',
+      'linktree'  => 'general_icone_linktree',
+      'facebook'  => 'general_icone_facebook',
+      'instagram' => 'general_icone_instagram',
+      'youtube'   => 'general_icone_youtube',
+      'tiktok'    => 'general_icone_tiktok',
+    ],
+
+    // --- UI ---
+    'ui' => [
+      'bg'          => '#0f0f10',
+      'panel'       => '#17181a',
+      'panel_2'     => '#1d1f22',
+      'border'      => 'rgba(255,255,255,.08)',
+      'text'        => 'rgba(255,255,255,.92)',
+      'muted'       => 'rgba(255,255,255,.72)',
+      'muted2'      => 'rgba(255,255,255,.58)',
+      'shadow'      => 'rgba(0,0,0,.55)',
+
+      // OR biker (moins agressif)
+      'gold'        => '#9a7424',
+      'goldbg'      => 'rgba(154,116,36,.18)',
+      'goldbg2'     => 'rgba(154,116,36,.28)',
+      'goldbd'      => 'rgba(154,116,36,.40)',
+
+      // sélection (pas rose)
+      'sel'         => 'rgba(154,116,36,.55)',
+
+      // police (doit correspondre au nom Elementor)
+      'font_viking' => 'Viking',
+    ],
+
+    // --- Types ---
+    'types' => [
+      'club_house'               => ['label' => 'Club House',              'color' => '#9a7424'],
+      'publique'                 => ['label' => 'Publique',                'color' => '#1f8a70'],
+      'stand'                    => ['label' => 'Stand',                   'color' => '#2b5fab'],
+      'run'                      => ['label' => 'Run',                     'color' => '#7b3fb8'],
+      'evenement_inter_chapitre' => ['label' => 'Évènement inter-chapitre', 'color' => '#b11d2e'],
+    ],
+
+    'type_priority' => [
+      'evenement_inter_chapitre',
+      'publique',
+      'run',
+      'stand',
+      'club_house',
+    ],
+
+    'limits' => [
+      'upcoming' => 50,
+      'past'     => 50,
+    ],
+  ];
+}
+
+function lag_events_parse_datetime($raw) : ?DateTime {
+  if (!$raw) return null;
+  $ts = strtotime($raw);
+  if ($ts) {
+    $dt = new DateTime('@'.$ts);
+    $dt->setTimezone(wp_timezone());
+    return $dt;
+  }
+  foreach (['Y-m-d H:i:s','Y-m-d H:i','d/m/Y H:i','d/m/Y G:i','d/m/Y g:i a','m/d/Y g:i a'] as $fmt) {
+    $dt = DateTime::createFromFormat($fmt, $raw, wp_timezone());
+    if ($dt instanceof DateTime) return $dt;
+  }
+  return null;
+}
+
+/**
+ * GENERAL: get single General post ID
+ */
+function lag_events_get_general_id(): ?int {
+  $cfg = lag_events_config();
+  $pt = $cfg['icons_acf']['post_type'] ?? 'general';
+
+  $ids = get_posts([
+    'post_type'      => $pt,
+    'post_status'    => ['publish','draft','pending','private'],
+    'posts_per_page' => 1,
+    'orderby'        => 'date',
+    'order'          => 'ASC',
+    'fields'         => 'ids',
+  ]);
+  return !empty($ids) ? (int)$ids[0] : null;
+}
+
+/**
+ * Get icon URL from General (supports URL / image ID / image array)
+ */
+function lag_events_get_icon_url(string $key): string {
+  $cfg = lag_events_config();
+  $general_id = lag_events_get_general_id();
+  if (!$general_id) return '';
+
+  $field = $cfg['icons_acf'][$key] ?? '';
+  if (!$field) return '';
+
+  $val = get_field($field, $general_id);
+  if (!$val) return '';
+
+  if (is_numeric($val)) {
+    $url = wp_get_attachment_url((int)$val);
+    return $url ? esc_url($url) : '';
+  }
+  if (is_array($val) && !empty($val['url'])) return esc_url($val['url']);
+  if (is_string($val) && filter_var($val, FILTER_VALIDATE_URL)) return esc_url($val);
+
+  return '';
+}
+
+/**
+ * Get chapitre socials (only filled URLs)
+ */
+function lag_events_get_chapitre_socials(int $chapitre_id): array {
+  $cfg = lag_events_config();
+  $map = $cfg['chapitre_acf'] ?? [];
+
+  $out = [];
+  foreach ($map as $key => $acf_field) {
+    $v = trim((string) get_field($acf_field, $chapitre_id));
+    if ($v && filter_var($v, FILTER_VALIDATE_URL)) {
+      $out[$key] = esc_url($v);
+    }
+  }
+  return $out;
+}
+
+function lag_events_get_event_data($post_id) : array {
+  $cfg = lag_events_config();
+  $acf = $cfg['acf'];
+  $ui  = $cfg['ui'];
+
+  $type = (string) get_field($acf['type'], $post_id);
+  $dt   = lag_events_parse_datetime(get_field($acf['datetime'], $post_id));
+
+  $affiche_id = (int) get_field($acf['affiche'], $post_id);
+
+  $prix = get_field($acf['prix_inscription'], $post_id);
+  $prix = is_numeric($prix) ? (float)$prix : null;
+
+  $type_label = (string)($cfg['types'][$type]['label'] ?? $type);
+  $type_color = (string)($cfg['types'][$type]['color'] ?? $ui['gold']);
+
+  return [
+    'id' => (int)$post_id,
+    'title' => get_the_title($post_id),
+
+    'type' => $type,
+    'type_label' => $type_label,
+    'type_color' => $type_color,
+
+    'date_iso' => $dt ? $dt->format('Y-m-d') : '',
+    'date_human' => $dt ? date_i18n('D j M Y \à H\hi', $dt->getTimestamp()) : '',
+    'timestamp' => $dt ? $dt->getTimestamp() : 0,
+
+    'lieu' => (string) get_field($acf['lieu'], $post_id),
+    'maps' => (string) get_field($acf['maps_url'], $post_id),
+
+    'affiche_url' => $affiche_id ? wp_get_attachment_image_url($affiche_id, 'large') : '',
+    'description' => (string) get_field($acf['description'], $post_id),
+
+    'inscription' => (string) get_field($acf['inscription'], $post_id),
+    'lien_inscription' => (string) get_field($acf['lien_inscription'], $post_id),
+    'prix_inscription' => $prix,
+
+    'lien_annexe' => (string) get_field($acf['lien_annexe'], $post_id),
+
+    'chapitre_nom' => (string) get_field($acf['chapitre_nom'], $post_id),
+    'chapitre_id'  => (int) get_field($acf['chapitre_id'], $post_id),
+  ];
+}
+
+function lag_events_get_next_event_id() : int {
+  $cfg = lag_events_config();
+  $acf_dt = $cfg['acf']['datetime'];
+  $now = current_time('timestamp');
+
+  $q = new WP_Query([
+    'post_type' => $cfg['post_type'],
+    'post_status' => 'publish',
+    'posts_per_page' => 1,
+    'meta_key' => $acf_dt,
+    'orderby' => 'meta_value',
+    'order' => 'ASC',
+    'meta_query' => [[
+      'key' => $acf_dt,
+      'value' => date('Y-m-d H:i:s', $now),
+      'compare' => '>=',
+      'type' => 'DATETIME',
+    ]],
+  ]);
+  if ($q->have_posts()) return (int)$q->posts[0]->ID;
+
+  $q2 = new WP_Query([
+    'post_type' => $cfg['post_type'],
+    'post_status' => 'publish',
+    'posts_per_page' => 1,
+    'meta_key' => $acf_dt,
+    'orderby' => 'meta_value',
+    'order' => 'DESC',
+  ]);
+  return $q2->have_posts() ? (int)$q2->posts[0]->ID : 0;
+}
+
+function lag_events_get_list($mode = 'upcoming') : array {
+  $cfg = lag_events_config();
+  $acf_dt = $cfg['acf']['datetime'];
+  $now = current_time('timestamp');
+  $is_upcoming = ($mode === 'upcoming');
+
+  $q = new WP_Query([
+    'post_type' => $cfg['post_type'],
+    'post_status' => 'publish',
+    'posts_per_page' => $cfg['limits'][$mode] ?? 50,
+    'meta_key' => $acf_dt,
+    'orderby' => 'meta_value',
+    'order' => $is_upcoming ? 'ASC' : 'DESC',
+    'meta_query' => [[
+      'key' => $acf_dt,
+      'value' => date('Y-m-d H:i:s', $now),
+      'compare' => $is_upcoming ? '>=' : '<',
+      'type' => 'DATETIME',
+    ]],
+  ]);
+
+  return array_map(fn($p) => lag_events_get_event_data($p->ID), $q->posts);
+}
+
+function lag_events_get_month_map(int $year, int $month) : array {
+  $cfg = lag_events_config();
+  $acf_dt = $cfg['acf']['datetime'];
+
+  $start = new DateTime("$year-$month-01 00:00:00", wp_timezone());
+  $end = clone $start; $end->modify('first day of next month');
+
+  $q = new WP_Query([
+    'post_type' => $cfg['post_type'],
+    'post_status' => 'publish',
+    'posts_per_page' => -1,
+    'meta_key' => $acf_dt,
+    'orderby' => 'meta_value',
+    'order' => 'ASC',
+    'meta_query' => [[
+      'key' => $acf_dt,
+      'value' => [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')],
+      'compare' => 'BETWEEN',
+      'type' => 'DATETIME',
+    ]],
+  ]);
+
+  $by_day = [];
+  foreach ($q->posts as $p) {
+    $ev = lag_events_get_event_data($p->ID);
+    if (!$ev['date_iso']) continue;
+    $by_day[$ev['date_iso']][] = $ev;
+  }
+
+  $best_by_day = [];
+  foreach ($by_day as $day => $events) {
+    $best = null;
+    foreach ($cfg['type_priority'] as $prio) {
+      foreach ($events as $ev) {
+        if ($ev['type'] === $prio) { $best = $ev; break 2; }
+      }
+    }
+    if (!$best) $best = $events[0];
+    $best_by_day[$day] = $best;
+  }
+
+  return [
+    'events_by_day' => $by_day,
+    'best_by_day'   => $best_by_day,
+  ];
+}
+
+function lag_events_svg_map_pin() : string {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d="M12 2c-3.86 0-7 3.14-7 7c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
+  </svg>';
+}
+
+function lag_events_render_detail_card(array $ev) : string {
+  $is_club_house = ($ev['type'] === 'club_house');
+
+  $title = esc_html($ev['title']);
+  $date  = esc_html($ev['date_human']);
+
+  $type_label = esc_html($ev['type_label']);
+  $type_color = esc_attr($ev['type_color']);
+
+  $img = $ev['affiche_url'] ? esc_url($ev['affiche_url']) : '';
+
+  $lieu = trim((string)$ev['lieu']);
+  $maps = trim((string)$ev['maps']);
+  $maps_url = $maps ? esc_url($maps) : '';
+
+  $chapitre = trim((string)$ev['chapitre_nom']);
+  $desc = (string)$ev['description'];
+
+  $insc = (string)$ev['inscription']; // none/free/paid
+  $lien_insc = trim((string)$ev['lien_inscription']);
+  $prix = $ev['prix_inscription'];
+
+  $lien_annexe = trim((string)$ev['lien_annexe']);
+
+  $insc_info = '';
+  if ($insc === 'free') $insc_info = 'Inscription : Gratuit';
+  if ($insc === 'paid') {
+    $p = ($prix !== null) ? number_format_i18n((float)$prix, 2).' €' : '';
+    $insc_info = 'Inscription : Payant'.($p ? ' • '.$p : '');
+  }
+
+  ob_start(); ?>
+  <div class="lag-ev-card">
+    <div class="lag-ev-top">
+      <h3 class="lag-ev-title lag-viking"><?php echo $title; ?></h3>
+      <?php if ($date): ?>
+        <div class="lag-ev-date"><?php echo $date; ?></div>
+      <?php endif; ?>
+    </div>
+
+    <div class="lag-ev-two">
+      <?php if ($img): ?>
+        <div class="lag-ev-poster">
+          <img src="<?php echo $img; ?>" alt="" loading="lazy" />
+        </div>
+      <?php endif; ?>
+
+      <div class="lag-ev-right">
+        <div class="lag-ev-type">
+          <span class="lag-ev-type-dot" style="background: <?php echo $type_color; ?>"></span>
+          <span class="lag-ev-type-label"><?php echo $type_label; ?></span>
+        </div>
+
+        <?php if (!$is_club_house && $lieu): ?>
+          <div class="lag-ev-meta lag-ev-lieu-row">
+            <strong>Lieu :</strong>
+            <span class="lag-ev-lieu-text"><?php echo esc_html($lieu); ?></span>
+            <?php if ($maps_url): ?>
+              <a class="lag-ev-maps-link" href="<?php echo $maps_url; ?>" target="_blank" rel="noopener" aria-label="Ouvrir dans Google Maps">
+                <?php echo lag_events_svg_map_pin(); ?>
+              </a>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if ($chapitre): ?>
+          <div class="lag-ev-meta lag-ev-chap-row">
+            <strong>Chapitre :</strong>
+            <span class="lag-ev-chap-name"><?php echo esc_html($chapitre); ?></span>
+
+            <?php
+              // Réseaux seulement si inter-chapitre + ID chapitre dispo
+              if ($ev['type'] === 'evenement_inter_chapitre' && !empty($ev['chapitre_id'])) {
+                $socials = lag_events_get_chapitre_socials((int)$ev['chapitre_id']);
+                if (!empty($socials)) {
+                  echo '<span class="lag-ev-socials" aria-label="Réseaux du chapitre">';
+                  foreach ($socials as $k => $url) {
+                    $icon = lag_events_get_icon_url($k);
+                    if (!$icon) continue; // si pas d’icône, on n’affiche rien
+                    echo '<a class="lag-ev-social" href="'.esc_url($url).'" target="_blank" rel="noopener" aria-label="'.esc_attr($k).'">';
+                    echo '<img src="'.esc_url($icon).'" alt="" loading="lazy" />';
+                    echo '</a>';
+                  }
+                  echo '</span>';
+                }
+              }
+            ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if (!empty($desc)): ?>
+          <div class="lag-ev-desc"><?php echo wp_kses_post($desc); ?></div>
+        <?php endif; ?>
+
+        <?php if ($insc_info): ?>
+          <div class="lag-ev-meta"><strong><?php echo esc_html($insc_info); ?></strong></div>
+        <?php endif; ?>
+
+        <?php if (!empty($lien_annexe)): ?>
+          <div class="lag-ev-meta">
+            <a class="lag-ev-more" href="<?php echo esc_url($lien_annexe); ?>" target="_blank" rel="noopener">Infos complémentaires</a>
+          </div>
+        <?php endif; ?>
+
+        <div class="lag-ev-spacer"></div>
+
+        <div class="lag-ev-actions">
+          <div></div>
+          <div class="lag-ev-rightbtn">
+            <?php
+              if ($insc === 'free' || $insc === 'paid') {
+                if (!empty($lien_insc)) {
+                  echo '<a class="lag-ev-btn" href="'.esc_url($lien_insc).'" target="_blank" rel="noopener">S\'inscrire</a>';
+                } else {
+                  echo '<button type="button" class="lag-ev-btn" data-lag-soon="1">Inscription prochainement</button>';
+                }
+              }
+            ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal (inscription prochainement) -->
+    <div class="lag-modal" aria-hidden="true">
+      <div class="lag-modal-backdrop"></div>
+      <div class="lag-modal-card" role="dialog" aria-modal="true">
+        <div class="lag-modal-title lag-viking">Inscriptions prochainement</div>
+        <div class="lag-modal-text">Les inscriptions ne sont pas encore disponibles. Reviens bientôt.</div>
+        <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+      </div>
+    </div>
+  </div>
+  <?php
+  return ob_get_clean();
+}
+
+/* AJAX fetch détail */
+add_action('wp_ajax_lag_events_fetch', 'lag_events_ajax_fetch');
+add_action('wp_ajax_nopriv_lag_events_fetch', 'lag_events_ajax_fetch');
+function lag_events_ajax_fetch() {
+  $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+  if (!$id) wp_send_json_error(['msg' => 'ID manquant']);
+  $ev = lag_events_get_event_data($id);
+  if (empty($ev['id'])) wp_send_json_error(['msg' => 'Introuvable']);
+  wp_send_json_success(['html' => lag_events_render_detail_card($ev), 'event' => $ev]);
+}
+
+/* AJAX mois calendrier */
+add_action('wp_ajax_lag_events_month', 'lag_events_ajax_month');
+add_action('wp_ajax_nopriv_lag_events_month', 'lag_events_ajax_month');
+function lag_events_ajax_month() {
+  $year = isset($_POST['year']) ? (int)$_POST['year'] : (int)date('Y');
+  $month = isset($_POST['month']) ? (int)$_POST['month'] : (int)date('n');
+  $map = lag_events_get_month_map($year, $month);
+  wp_send_json_success([
+    'year'=>$year,
+    'month'=>$month,
+    'events_by_day'=>$map['events_by_day'],
+    'best_by_day'=>$map['best_by_day'],
+  ]);
+}
+
+add_shortcode('lag_events_page', function() {
+  $cfg = lag_events_config();
+  $ui  = $cfg['ui'];
+
+  $next_id  = lag_events_get_next_event_id();
+  $upcoming = lag_events_get_list('upcoming');
+  $past     = lag_events_get_list('past');
+
+  $year  = (int)date('Y');
+  $month = (int)date('n');
+  $month_map = lag_events_get_month_map($year, $month);
+
+  $detail_html = $next_id
+    ? lag_events_render_detail_card(lag_events_get_event_data($next_id))
+    : '<div class="lag-ev-empty">Aucun évènement.</div>';
+
+  $legend = [];
+  foreach ($cfg['types'] as $k => $t) $legend[] = ['key'=>$k,'label'=>$t['label'],'color'=>$t['color']];
+
+  ob_start(); ?>
+  <div class="lag-events" data-selected="<?php echo (int)$next_id; ?>" data-year="<?php echo $year; ?>" data-month="<?php echo $month; ?>">
+    <div class="lag-top">
+      <section class="lag-box lag-box-detail" id="lag-ev-detail"><?php echo $detail_html; ?></section>
+
+      <section class="lag-box lag-box-cal" id="lag-ev-calendar">
+        <div class="lag-cal-head">
+          <button class="lag-cal-nav" data-dir="-1" type="button" aria-label="Mois précédent">‹</button>
+          <div class="lag-cal-title" id="lag-cal-title"></div>
+          <button class="lag-cal-nav" data-dir="1" type="button" aria-label="Mois suivant">›</button>
+        </div>
+
+        <div class="lag-cal-legend">
+          <?php foreach ($legend as $it): ?>
+            <span class="lag-leg-item">
+              <span class="lag-leg-swatch" style="background: <?php echo esc_attr($it['color']); ?>"></span>
+              <span class="lag-leg-label"><?php echo esc_html($it['label']); ?></span>
+            </span>
+          <?php endforeach; ?>
+        </div>
+
+        <div class="lag-cal-weekdays">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+
+        <div class="lag-cal-grid" id="lag-cal-grid"></div>
+
+        <!-- POPUP choix évènements du jour -->
+        <div class="lag-modal lag-day-modal" aria-hidden="true">
+          <div class="lag-modal-backdrop"></div>
+          <div class="lag-modal-card" role="dialog" aria-modal="true">
+            <div class="lag-modal-title lag-viking">Évènements du jour</div>
+            <div class="lag-day-modal-items" id="lag-day-modal-items"></div>
+            <button type="button" class="lag-ev-btn lag-day-modal-close">Fermer</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="lag-bottom">
+      <section class="lag-box" id="lag-ev-upcoming">
+        <h3 class="lag-box-title lag-viking">À venir</h3>
+        <div class="lag-list" id="lag-list-upcoming">
+          <?php foreach ($upcoming as $ev): ?>
+            <button class="lag-item" type="button"
+              data-id="<?php echo (int)$ev['id']; ?>"
+              data-day="<?php echo esc_attr($ev['date_iso']); ?>"
+              style="--lag-color: <?php echo esc_attr($ev['type_color']); ?>">
+              <span class="lag-dot" aria-hidden="true"></span>
+              <span class="lag-item-main">
+                <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
+                <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
+                  <?php echo esc_html($ev['date_human']); ?>
+                </span>
+              </span>
+            </button>
+          <?php endforeach; ?>
+        </div>
+      </section>
+
+      <section class="lag-box" id="lag-ev-past">
+        <h3 class="lag-box-title lag-viking">Passés</h3>
+        <div class="lag-list" id="lag-list-past">
+          <?php foreach ($past as $ev): ?>
+            <button class="lag-item" type="button"
+              data-id="<?php echo (int)$ev['id']; ?>"
+              data-day="<?php echo esc_attr($ev['date_iso']); ?>"
+              style="--lag-color: <?php echo esc_attr($ev['type_color']); ?>">
+              <span class="lag-dot" aria-hidden="true"></span>
+              <span class="lag-item-main">
+                <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
+                <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
+                  <?php echo esc_html($ev['date_human']); ?>
+                </span>
+              </span>
+            </button>
+          <?php endforeach; ?>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <style>
+    .lag-events{
+      --bg: <?php echo $ui['bg']; ?>;
+      --panel: <?php echo $ui['panel']; ?>;
+      --panel2: <?php echo $ui['panel_2']; ?>;
+      --border: <?php echo $ui['border']; ?>;
+      --text: <?php echo $ui['text']; ?>;
+      --muted: <?php echo $ui['muted']; ?>;
+      --muted2: <?php echo $ui['muted2']; ?>;
+
+      --gold: <?php echo $ui['gold']; ?>;
+      --goldbg: <?php echo $ui['goldbg']; ?>;
+      --goldbg2: <?php echo $ui['goldbg2']; ?>;
+      --goldbd: <?php echo $ui['goldbd']; ?>;
+
+      --shadow: <?php echo $ui['shadow']; ?>;
+      --sel: <?php echo $ui['sel']; ?>;
+
+      --viking: "<?php echo esc_attr($ui['font_viking']); ?>";
+      color: var(--text);
+    }
+
+    /* Layout: même hauteur fiche / calendrier */
+    .lag-top{
+      display:grid;
+      grid-template-columns: 1.6fr .8fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    .lag-bottom{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){
+      .lag-top{ grid-template-columns: 1fr; }
+      .lag-bottom{ grid-template-columns: 1fr; }
+    }
+
+    .lag-box{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      box-shadow: 0 16px 40px var(--shadow);
+      overflow:hidden;
+      height: 100%;
+    }
+
+    #lag-ev-calendar{
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Viking + or */
+    .lag-viking{
+      font-family: var(--viking), "Cinzel", serif !important;
+      letter-spacing:.7px;
+      color: var(--gold) !important;
+      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+    }
+
+    /* Titres listes */
+    .lag-box-title{
+      margin:0 0 10px 0;
+      font-size:18px;
+    }
+
+    /* DETAIL */
+    .lag-ev-card{ height:100%; display:flex; flex-direction:column; }
+    .lag-ev-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .lag-ev-title{ margin:0; font-size:22px; line-height:1.12; }
+    .lag-ev-date{
+      color: rgba(255,255,255,.92);
+      font-weight:950;
+      font-size:12px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      white-space:nowrap;
+    }
+
+    .lag-ev-two{
+      display:grid;
+      grid-template-columns: .95fr 1.05fr;
+      gap:12px;
+      margin-top:12px;
+      align-items:stretch;
+      flex:1;
+      min-height: 0;
+    }
+    @media (max-width: 900px){ .lag-ev-two{ grid-template-columns: 1fr; } }
+
+    .lag-ev-poster{
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height: 220px;
+    }
+    .lag-ev-poster img{
+      width:100%;
+      height:100%;
+      max-height: 380px;
+      object-fit: contain;
+      display:block;
+      filter: contrast(1.02) brightness(.92);
+    }
+
+    .lag-ev-right{
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+
+    .lag-ev-type{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:8px;
+      color: var(--muted);
+      font-weight:950;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+    .lag-ev-type-dot{
+      width:10px; height:10px; border-radius:4px; display:inline-block;
+    }
+
+    .lag-ev-meta{ margin:6px 0; color: var(--muted); }
+    .lag-ev-desc{ margin-top:10px; color: var(--text); opacity:.95; }
+    .lag-ev-desc p{ margin: 0 0 8px 0; }
+
+    /* Chapitre + réseaux */
+    .lag-ev-chap-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .lag-ev-socials{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      margin-left:6px;
+    }
+    .lag-ev-social{
+      width:22px;
+      height:22px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      text-decoration:none !important;
+    }
+    .lag-ev-social img{
+      width:14px;
+      height:14px;
+      object-fit:contain;
+      display:block;
+      filter: brightness(.95);
+    }
+    .lag-ev-social:hover{
+      border-color: rgba(154,116,36,.40);
+      background: rgba(255,255,255,.05);
+    }
+
+    /* Infos complémentaires sans pointillés */
+    .lag-ev-more{
+      color: rgba(255,255,255,.92) !important;
+      font-weight:950;
+      text-decoration:none !important;
+      border: none !important;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10) !important;
+      display:inline-flex;
+      width: fit-content;
+      gap: 8px;
+      align-items:center;
+    }
+    .lag-ev-more:hover{
+      border-color: rgba(154,116,36,.35) !important;
+      background: rgba(255,255,255,.05) !important;
+    }
+
+    .lag-ev-lieu-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .lag-ev-maps-link{
+      width:30px; height:30px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.92) !important;
+      text-decoration:none;
+    }
+    .lag-ev-maps-link:hover{ border-color: rgba(154,116,36,.30); }
+
+    .lag-ev-spacer{ flex:1; }
+    .lag-ev-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    /* =========================
+       BOUTONS OR (comme tu veux)
+       ========================= */
+    .lag-ev-btn,
+    .lag-item,
+    .lag-cal-choice,
+    .lag-modal-close,
+    .lag-day-modal-close{
+      background: var(--goldbg) !important;
+      border: 1px solid var(--goldbd) !important;
+      color: rgba(255,255,255,.95) !important;
+      box-shadow: none !important;
+      text-decoration: none !important;
+    }
+    .lag-ev-btn:hover,
+    .lag-item:hover,
+    .lag-cal-choice:hover{
+      background: var(--goldbg2) !important;
+      border-color: rgba(154,116,36,.55) !important;
+    }
+
+    .lag-ev-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:950;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    /* LISTS */
+    .lag-list{ display:flex; flex-direction:column; gap:10px; }
+    .lag-list.is-scroll{
+      max-height: 240px;
+      overflow:auto;
+      padding-right: 6px;
+    }
+    .lag-list.is-scroll::-webkit-scrollbar{ width: 8px; }
+    .lag-list.is-scroll::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+    }
+
+    .lag-item{
+      display:flex; align-items:center; gap:10px;
+      width:100%; text-align:left;
+      border-radius:14px;
+      padding:10px 12px;
+      cursor:pointer;
+      transition: border-color .12s ease, background .12s ease;
+      -webkit-tap-highlight-color: transparent;
+      outline: none !important;
+    }
+    .lag-item:focus-visible{
+      outline: 3px solid var(--sel) !important;
+      outline-offset: 2px !important;
+    }
+
+    .lag-dot{
+      width:10px; height:10px; border-radius:6px;
+      background: var(--lag-color, var(--gold));
+      filter: brightness(.92) saturate(1);
+    }
+    .lag-item-main{ min-width:0; }
+    .lag-item-title{ font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lag-item-sub{ font-size:12px; color: rgba(255,255,255,.78) !important; }
+
+    /* CALENDAR */
+    .lag-cal-head{
+      display:grid;
+      grid-template-columns: 28px 1fr 28px;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .lag-cal-title{
+      text-align:center;
+      font-weight:950;
+      font-size:18px;
+      letter-spacing:.2px;
+      color: rgba(255,255,255,.92);
+    }
+    .lag-cal-nav{
+      width:28px; height:28px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:none !important;
+      background: transparent !important;
+      color: rgba(255,255,255,.92) !important;
+      font-size:26px;
+      line-height:1;
+      cursor:pointer;
+      padding:0;
+      box-shadow:none !important;
+    }
+
+    .lag-cal-legend{ display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 12px; }
+    .lag-leg-item{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:900; color: var(--muted); }
+    .lag-leg-swatch{ width:12px; height:12px; border-radius:4px; display:inline-block; }
+
+    .lag-cal-weekdays{
+      display:grid; grid-template-columns: repeat(7, 1fr);
+      gap:8px; margin-bottom:8px; font-size:12px; color: var(--muted2);
+    }
+    .lag-cal-weekdays span{ text-align:center; }
+
+    .lag-cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
+
+    .lag-day{
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.02);
+      min-height:44px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
+      position:relative;
+      font-weight:950;
+      color: rgba(255,255,255,.92);
+      user-select:none;
+      transition: border-color .12s ease;
+    }
+    .lag-day:hover{ border-color: rgba(154,116,36,.20); }
+    .lag-day.is-empty{ opacity:.25; cursor:default; background: transparent !important; }
+    .lag-day.has-events{ color:#101010; }
+
+    .lag-day.is-selected{
+      outline: 3px solid var(--sel) !important;
+      outline-offset: 2px !important;
+    }
+
+    /* Modal (commun) */
+    .lag-modal{ display:none; }
+    .lag-modal.is-open{ display:block; }
+    .lag-modal-backdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.65);
+      z-index:9998;
+    }
+    .lag-modal-card{
+      position:fixed;
+      top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      width:min(460px, 92vw);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      z-index:9999;
+      box-shadow: 0 18px 60px rgba(0,0,0,.75);
+    }
+    .lag-modal-title{ font-weight:950; margin-bottom:10px; }
+    .lag-modal-text{ color: var(--muted); margin-bottom:12px; }
+
+    .lag-day-modal-items{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-bottom:12px;
+      max-height: 320px;
+      overflow:auto;
+      padding-right: 6px;
+    }
+    .lag-day-modal-items::-webkit-scrollbar{ width: 8px; }
+    .lag-day-modal-items::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+    }
+
+    .lag-cal-choice{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      text-align:left;
+      font-weight:950;
+    }
+    .lag-cal-choice-dot{ width:10px; height:10px; border-radius:6px; background: var(--c); }
+
+    /* ===== MOBILE PATCH ===== */
+    @media (max-width: 600px){
+
+      /* 1) Listes: afficher seulement JJ/MM */
+      .lag-item-sub{
+        font-size: 12px;
+      }
+      .lag-item-sub{
+        /* On masque le texte long et on affiche data-short */
+        color: transparent !important;
+        position: relative;
+      }
+      .lag-item-sub::before{
+        content: attr(data-short);
+        color: rgba(255,255,255,.78) !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+
+      /* 2) Fiche détaillée: date sous le titre (au lieu d'à droite) */
+      .lag-ev-top{
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .lag-ev-date{
+        margin-top: 8px;
+        align-self: flex-start;
+        white-space: normal;
+      }
+
+      /* 3) Bouton inscription: ne dépasse jamais, texte adaptatif */
+      .lag-ev-actions{
+        justify-content: stretch;
+      }
+      .lag-ev-rightbtn{
+        width: 100%;
+      }
+      .lag-ev-btn{
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;      /* autorise 2 lignes */
+        line-height: 1.1;
+        text-align: center;
+        padding: 10px 12px;
+      }
+
+      /* Si le bouton est "Inscription prochainement", on raccourcit automatiquement */
+      .lag-ev-btn[data-lag-soon="1"]{
+        font-size: 14px;
+      }
+      .lag-ev-btn[data-lag-soon="1"]::after{
+        content: "Inscription proch.";
+      }
+      .lag-ev-btn[data-lag-soon="1"]{
+        color: transparent !important;
+        position: relative;
+      }
+      .lag-ev-btn[data-lag-soon="1"]::after{
+        color: rgba(255,255,255,.95);
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+      }
+    }
+  </style>
+
+  <script>
+  (function(){
+    const root = document.querySelector('.lag-events');
+    if(!root) return;
+
+    const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+
+    let year = parseInt(root.dataset.year, 10);
+    let month = parseInt(root.dataset.month, 10);
+    let selectedDay = '';
+    let selectedEventId = parseInt(root.dataset.selected, 10) || 0;
+
+    let monthData = {
+      events_by_day: <?php echo wp_json_encode($month_map['events_by_day']); ?>,
+      best_by_day:   <?php echo wp_json_encode($month_map['best_by_day']); ?>,
+    };
+
+    const calTitle = document.getElementById('lag-cal-title');
+    const calGrid  = document.getElementById('lag-cal-grid');
+    const detailBox= document.getElementById('lag-ev-detail');
+
+    const dayModal = document.querySelector('#lag-ev-calendar .lag-day-modal');
+    const dayModalItems = document.getElementById('lag-day-modal-items');
+
+    const monthNames = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function ymd(y,m,d){ return `${y}-${pad(m)}-${pad(d)}`; }
+    function firstWeekMondayIndex(date){
+      const dow = date.getDay();
+      return (dow + 6) % 7;
+    }
+
+    function gradientForColors(colors){
+      const uniq = [...new Set(colors.filter(Boolean))];
+      if(uniq.length <= 1) return uniq[0] || '';
+      const n = Math.min(uniq.length, 5);
+      const stops = [];
+      for(let i=0;i<n;i++){
+        const a = (i*(100/n)).toFixed(3);
+        const b = ((i+1)*(100/n)).toFixed(3);
+        stops.push(`${uniq[i]} ${a}% ${b}%`);
+      }
+      return `linear-gradient(135deg, ${stops.join(', ')})`;
+    }
+
+    function openModal(modal){
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden','false');
+    }
+    function closeModal(modal){
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden','true');
+    }
+
+    function bindModal(scope){
+      const modal = scope.querySelector('.lag-modal');
+      if(!modal) return;
+
+      modal.addEventListener('click', (e) => {
+        if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-modal-close')) {
+          closeModal(modal);
+        }
+      });
+
+      const soonBtn = scope.querySelector('[data-lag-soon="1"]');
+      if(soonBtn){
+        soonBtn.addEventListener('click', () => openModal(modal));
+      }
+    }
+
+    function selectEvent(id){
+      if(!id) return;
+      selectedEventId = parseInt(id, 10);
+
+      const fd = new FormData();
+      fd.append('action', 'lag_events_fetch');
+      fd.append('id', selectedEventId);
+
+      fetch(ajaxUrl, { method:'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+          if(res?.success){
+            detailBox.innerHTML = res.data.html;
+            bindModal(detailBox);
+          }
+        })
+        .catch(()=>{});
+    }
+
+    function showDayChoicesPopup(dayIso){
+      const list = monthData.events_by_day?.[dayIso] || [];
+      if(list.length <= 1) return;
+
+      dayModalItems.innerHTML = '';
+      list.forEach(ev => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lag-cal-choice';
+        btn.style.setProperty('--c', ev.type_color || '#999');
+
+        const dot = document.createElement('span');
+        dot.className = 'lag-cal-choice-dot';
+        dot.style.background = (ev.type_color || '#999');
+
+        const txt = document.createElement('span');
+        txt.textContent = ev.title;
+
+        btn.appendChild(dot);
+        btn.appendChild(txt);
+
+        btn.addEventListener('click', () => {
+          selectEvent(ev.id);
+          closeModal(dayModal);
+        });
+
+        dayModalItems.appendChild(btn);
+      });
+
+      openModal(dayModal);
+    }
+
+    function selectDay(dayIso){
+      selectedDay = dayIso;
+      renderCalendar();
+
+      const list = monthData.events_by_day?.[dayIso] || [];
+      const best = monthData.best_by_day?.[dayIso];
+
+      if(list.length > 1){
+        // Pop-up pour choisir
+        showDayChoicesPopup(dayIso);
+        // Et on affiche par défaut le "best"
+        if(best?.id) selectEvent(best.id);
+        else if(list[0]?.id) selectEvent(list[0].id);
+        return;
+      }
+
+      if(best?.id) selectEvent(best.id);
+      else if(list[0]?.id) selectEvent(list[0].id);
+    }
+
+    function renderCalendar(){
+      calTitle.textContent = `${monthNames[month-1]} ${year}`;
+      calGrid.innerHTML = '';
+
+      const first = new Date(year, month-1, 1);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const offset = firstWeekMondayIndex(first);
+
+      for(let i=0;i<offset;i++){
+        const div = document.createElement('div');
+        div.className = 'lag-day is-empty';
+        calGrid.appendChild(div);
+      }
+
+      for(let d=1; d<=daysInMonth; d++){
+        const dayIso = ymd(year, month, d);
+        const cell = document.createElement('div');
+
+        const list = monthData.events_by_day?.[dayIso] || null;
+
+        cell.className = 'lag-day' + (list ? ' has-events' : '');
+        cell.textContent = d;
+
+        if(list && list.length){
+          const colors = list.map(e => e.type_color);
+          const bg = gradientForColors(colors);
+          if(bg){
+            if(bg.startsWith('linear-gradient')) cell.style.backgroundImage = bg;
+            else cell.style.background = bg;
+          }
+        }
+
+        // ✅ SUPPRIMÉ: badge compteur (tu ne veux pas le "2")
+        // if(list && list.length > 1){ ... }
+
+        if(dayIso === selectedDay) cell.classList.add('is-selected');
+
+        cell.addEventListener('click', () => selectDay(dayIso));
+        calGrid.appendChild(cell);
+      }
+    }
+
+    function loadMonth(y, m){
+      const fd = new FormData();
+      fd.append('action', 'lag_events_month');
+      fd.append('year', y);
+      fd.append('month', m);
+
+      fetch(ajaxUrl, { method:'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+          if(!res?.success) return;
+          year = res.data.year;
+          month = res.data.month;
+          monthData = {
+            events_by_day: res.data.events_by_day || {},
+            best_by_day:   res.data.best_by_day || {},
+          };
+          selectedDay = '';
+          renderCalendar();
+        })
+        .catch(()=>{});
+    }
+
+    // nav mois
+    document.querySelectorAll('.lag-cal-nav').forEach(b => {
+      b.addEventListener('click', () => {
+        const dir = parseInt(b.dataset.dir, 10);
+        let newM = month + dir, newY = year;
+        if(newM < 1){ newM = 12; newY--; }
+        if(newM > 12){ newM = 1; newY++; }
+        loadMonth(newY, newM);
+      });
+    });
+
+    // click listes
+    document.querySelectorAll('.lag-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const day = btn.dataset.day || '';
+        if(day){ selectedDay = day; renderCalendar(); }
+        selectEvent(id);
+      });
+    });
+
+    // bind modal jour
+    if(dayModal){
+      dayModal.addEventListener('click', (e) => {
+        if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-day-modal-close')) {
+          closeModal(dayModal);
+        }
+      });
+      const closeBtn = dayModal.querySelector('.lag-day-modal-close');
+      if(closeBtn){
+        closeBtn.addEventListener('click', () => closeModal(dayModal));
+      }
+    }
+
+    // bind modal inscription
+    bindModal(detailBox);
+
+    // listes scroll > 5
+    function applyScrollIfNeeded(listEl){
+      if(!listEl) return;
+      const items = listEl.querySelectorAll('.lag-item').length;
+      if(items > 5) listEl.classList.add('is-scroll');
+    }
+    applyScrollIfNeeded(document.getElementById('lag-list-upcoming'));
+    applyScrollIfNeeded(document.getElementById('lag-list-past'));
+
+    renderCalendar();
+  })();
+  </script>
+  <?php
+  return ob_get_clean();
+});
