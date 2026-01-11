@@ -1,14 +1,20 @@
-
 /**
  * LAG EVENTS - Page événements 4 zones (fiche + calendrier / listes)
  * Shortcode: [lag_events_page]
+ *
+ * NOTE IMPORTANT:
+ * - Le chapitre "référent" (pour Club House -> réseaux Facebook/Instagram) est lu depuis le CPT "general".
+ * - Renseigne le nom exact du champ ACF contenant l'ID du chapitre référent ci-dessous :
+ *   'general_ref_chapitre_id' => 'TON_CHAMP_ACF_ICI'
  */
+
+if (!defined('ABSPATH')) exit;
 
 function lag_events_config() {
   return [
     'post_type' => 'evenement',
 
-    // --- MAPPING CHAMPS ACF ---
+    // --- MAPPING CHAMPS ACF (EVENEMENT) ---
     'acf' => [
       'type'             => 'evenement_type',
       'datetime'         => 'evenement_date_heure',
@@ -26,11 +32,15 @@ function lag_events_config() {
       'chapitre_id'      => 'evenement_chapitre_visite_id',
     ],
 
+    // --- CPT GENERAL : champ ACF qui contient l'ID du chapitre référent (pour Club House) ---
+    // ⛔️ A MODIFIER si ton champ n’a pas ce nom
+    'general_ref_chapitre_id' => 'general_chapitre_reference_id',
+
     // --- ACF CHAPITRES (réseaux) ---
     'chapitre_acf' => [
       'site'      => 'chapitre_site',
       'linktree'  => 'chapitre_linktree',
-      'facebook'  => 'chapitre_facebook', // adapte si besoin
+      'facebook'  => 'chapitre_facebook',
       'instagram' => 'chapitre_instagram',
       'youtube'   => 'chapitre_youtube',
       'tiktok'    => 'chapitre_tiktok',
@@ -58,34 +68,17 @@ function lag_events_config() {
       'muted2'      => 'rgba(255,255,255,.58)',
       'shadow'      => 'rgba(0,0,0,.55)',
 
-      // OR biker (moins agressif)
+      // OR biker
       'gold'        => '#9a7424',
       'goldbg'      => 'rgba(154,116,36,.18)',
       'goldbg2'     => 'rgba(154,116,36,.28)',
       'goldbd'      => 'rgba(154,116,36,.40)',
 
-      // sélection (pas rose)
+      // sélection
       'sel'         => 'rgba(154,116,36,.55)',
 
-      // police (doit correspondre au nom Elementor)
+      // police (Elementor)
       'font_viking' => 'Viking',
-    ],
-
-    // --- Types ---
-    'types' => [
-      'club_house'               => ['label' => 'Club House',              'color' => '#9a7424'],
-      'publique'                 => ['label' => 'Publique',                'color' => '#1f8a70'],
-      'stand'                    => ['label' => 'Stand',                   'color' => '#2b5fab'],
-      'run'                      => ['label' => 'Run',                     'color' => '#7b3fb8'],
-      'evenement_inter_chapitre' => ['label' => 'Évènement inter-chapitre', 'color' => '#b11d2e'],
-    ],
-
-    'type_priority' => [
-      'evenement_inter_chapitre',
-      'publique',
-      'run',
-      'stand',
-      'club_house',
     ],
 
     'limits' => [
@@ -158,8 +151,8 @@ function lag_events_get_icon_url(string $key): string {
 function lag_events_get_chapitre_socials(int $chapitre_id): array {
   $cfg = lag_events_config();
   $map = $cfg['chapitre_acf'] ?? [];
-
   $out = [];
+
   foreach ($map as $key => $acf_field) {
     $v = trim((string) get_field($acf_field, $chapitre_id));
     if ($v && filter_var($v, FILTER_VALIDATE_URL)) {
@@ -167,6 +160,27 @@ function lag_events_get_chapitre_socials(int $chapitre_id): array {
     }
   }
   return $out;
+}
+
+/**
+ * Read referent chapitre ID from CPT "general"
+ */
+function lag_events_get_referent_chapitre_id(): int {
+  $cfg = lag_events_config();
+  $general_id = lag_events_get_general_id();
+  if (!$general_id) return 0;
+
+  $field = $cfg['general_ref_chapitre_id'] ?? '';
+  if (!$field) return 0;
+
+  $v = get_field($field, $general_id);
+
+  // support numeric / array / object
+  if (is_numeric($v)) return (int)$v;
+  if (is_array($v) && isset($v['ID'])) return (int)$v['ID'];
+  if (is_object($v) && isset($v->ID)) return (int)$v->ID;
+
+  return 0;
 }
 
 function lag_events_get_event_data($post_id) : array {
@@ -182,20 +196,16 @@ function lag_events_get_event_data($post_id) : array {
   $prix = get_field($acf['prix_inscription'], $post_id);
   $prix = is_numeric($prix) ? (float)$prix : null;
 
-  $type_label = (string)($cfg['types'][$type]['label'] ?? $type);
-  $type_color = (string)($cfg['types'][$type]['color'] ?? $ui['gold']);
-
   return [
     'id' => (int)$post_id,
     'title' => get_the_title($post_id),
 
+    // type conservé pour logique (club_house / inter-chapitre), mais PLUS affiché visuellement
     'type' => $type,
-    'type_label' => $type_label,
-    'type_color' => $type_color,
 
-    'date_iso' => $dt ? $dt->format('Y-m-d') : '',
+    'date_iso'   => $dt ? $dt->format('Y-m-d') : '',
     'date_human' => $dt ? date_i18n('D j M Y \à H\hi', $dt->getTimestamp()) : '',
-    'timestamp' => $dt ? $dt->getTimestamp() : 0,
+    'timestamp'  => $dt ? $dt->getTimestamp() : 0,
 
     'lieu' => (string) get_field($acf['lieu'], $post_id),
     'maps' => (string) get_field($acf['maps_url'], $post_id),
@@ -203,7 +213,7 @@ function lag_events_get_event_data($post_id) : array {
     'affiche_url' => $affiche_id ? wp_get_attachment_image_url($affiche_id, 'large') : '',
     'description' => (string) get_field($acf['description'], $post_id),
 
-    'inscription' => (string) get_field($acf['inscription'], $post_id),
+    'inscription'      => (string) get_field($acf['inscription'], $post_id),
     'lien_inscription' => (string) get_field($acf['lien_inscription'], $post_id),
     'prix_inscription' => $prix,
 
@@ -211,6 +221,9 @@ function lag_events_get_event_data($post_id) : array {
 
     'chapitre_nom' => (string) get_field($acf['chapitre_nom'], $post_id),
     'chapitre_id'  => (int) get_field($acf['chapitre_id'], $post_id),
+
+    // couleur unique (or)
+    'ui_color' => (string)($ui['gold'] ?? '#9a7424'),
   ];
 }
 
@@ -299,16 +312,10 @@ function lag_events_get_month_map(int $year, int $month) : array {
     $by_day[$ev['date_iso']][] = $ev;
   }
 
+  // "best" = premier de la journée (peu importe type, car non utilisé visuellement)
   $best_by_day = [];
   foreach ($by_day as $day => $events) {
-    $best = null;
-    foreach ($cfg['type_priority'] as $prio) {
-      foreach ($events as $ev) {
-        if ($ev['type'] === $prio) { $best = $ev; break 2; }
-      }
-    }
-    if (!$best) $best = $events[0];
-    $best_by_day[$day] = $best;
+    $best_by_day[$day] = $events[0];
   }
 
   return [
@@ -323,16 +330,18 @@ function lag_events_svg_map_pin() : string {
   </svg>';
 }
 
+/**
+ * Detail card (fiche)
+ * - Type non affiché
+ * - Club House: bouton "Nous contacter" => modal avec texte + icônes FB/IG du chapitre référent
+ * - Inter-chapitre: on garde la ligne "Chapitre :" + réseaux du chapitre visité (si ID dispo)
+ */
 function lag_events_render_detail_card(array $ev) : string {
   $is_club_house = ($ev['type'] === 'club_house');
 
   $title = esc_html($ev['title']);
   $date  = esc_html($ev['date_human']);
-
-  $type_label = esc_html($ev['type_label']);
-  $type_color = esc_attr($ev['type_color']);
-
-  $img = $ev['affiche_url'] ? esc_url($ev['affiche_url']) : '';
+  $img   = $ev['affiche_url'] ? esc_url($ev['affiche_url']) : '';
 
   $lieu = trim((string)$ev['lieu']);
   $maps = trim((string)$ev['maps']);
@@ -347,11 +356,26 @@ function lag_events_render_detail_card(array $ev) : string {
 
   $lien_annexe = trim((string)$ev['lien_annexe']);
 
+  // Inscription info (SAUF club house)
   $insc_info = '';
-  if ($insc === 'free') $insc_info = 'Inscription : Gratuit';
-  if ($insc === 'paid') {
-    $p = ($prix !== null) ? number_format_i18n((float)$prix, 2).' €' : '';
-    $insc_info = 'Inscription : Payant'.($p ? ' • '.$p : '');
+  if (!$is_club_house) {
+    if ($insc === 'free') $insc_info = 'Inscription : Gratuit';
+    if ($insc === 'paid') {
+      $p = ($prix !== null) ? number_format_i18n((float)$prix, 2).' €' : '';
+      $insc_info = 'Inscription : Payant'.($p ? ' • '.$p : '');
+    }
+  }
+
+  // Club house socials: chapitre référent (FB/IG seulement)
+  $club_socials = [];
+  if ($is_club_house) {
+    $ref_id = lag_events_get_referent_chapitre_id();
+    if ($ref_id) {
+      $all = lag_events_get_chapitre_socials($ref_id);
+      // uniquement facebook + instagram
+      if (!empty($all['facebook']))  $club_socials['facebook']  = $all['facebook'];
+      if (!empty($all['instagram'])) $club_socials['instagram'] = $all['instagram'];
+    }
   }
 
   ob_start(); ?>
@@ -371,10 +395,6 @@ function lag_events_render_detail_card(array $ev) : string {
       <?php endif; ?>
 
       <div class="lag-ev-right">
-        <div class="lag-ev-type">
-          <span class="lag-ev-type-dot" style="background: <?php echo $type_color; ?>"></span>
-          <span class="lag-ev-type-label"><?php echo $type_label; ?></span>
-        </div>
 
         <?php if (!$is_club_house && $lieu): ?>
           <div class="lag-ev-meta lag-ev-lieu-row">
@@ -394,14 +414,14 @@ function lag_events_render_detail_card(array $ev) : string {
             <span class="lag-ev-chap-name"><?php echo esc_html($chapitre); ?></span>
 
             <?php
-              // Réseaux seulement si inter-chapitre + ID chapitre dispo
-              if ($ev['type'] === 'evenement_inter_chapitre' && !empty($ev['chapitre_id'])) {
+              // Réseaux seulement si chapitre visité + ID chapitre dispo
+              if (!empty($ev['chapitre_id'])) {
                 $socials = lag_events_get_chapitre_socials((int)$ev['chapitre_id']);
                 if (!empty($socials)) {
                   echo '<span class="lag-ev-socials" aria-label="Réseaux du chapitre">';
                   foreach ($socials as $k => $url) {
                     $icon = lag_events_get_icon_url($k);
-                    if (!$icon) continue; // si pas d’icône, on n’affiche rien
+                    if (!$icon) continue;
                     echo '<a class="lag-ev-social" href="'.esc_url($url).'" target="_blank" rel="noopener" aria-label="'.esc_attr($k).'">';
                     echo '<img src="'.esc_url($icon).'" alt="" loading="lazy" />';
                     echo '</a>';
@@ -432,22 +452,26 @@ function lag_events_render_detail_card(array $ev) : string {
         <div class="lag-ev-actions">
           <div></div>
           <div class="lag-ev-rightbtn">
-            <?php
-              if ($insc === 'free' || $insc === 'paid') {
-                if (!empty($lien_insc)) {
-                  echo '<a class="lag-ev-btn" href="'.esc_url($lien_insc).'" target="_blank" rel="noopener">S\'inscrire</a>';
-                } else {
-                  echo '<button type="button" class="lag-ev-btn" data-lag-soon="1">Inscription prochainement</button>';
+            <?php if ($is_club_house): ?>
+              <button type="button" class="lag-ev-btn" data-lag-contact="1">Nous contacter</button>
+            <?php else: ?>
+              <?php
+                if ($insc === 'free' || $insc === 'paid') {
+                  if (!empty($lien_insc)) {
+                    echo '<a class="lag-ev-btn" href="'.esc_url($lien_insc).'" target="_blank" rel="noopener">S\'inscrire</a>';
+                  } else {
+                    echo '<button type="button" class="lag-ev-btn" data-lag-soon="1">Inscription prochainement</button>';
+                  }
                 }
-              }
-            ?>
+              ?>
+            <?php endif; ?>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Modal (inscription prochainement) -->
-    <div class="lag-modal" aria-hidden="true">
+    <div class="lag-modal lag-modal-soon" aria-hidden="true">
       <div class="lag-modal-backdrop"></div>
       <div class="lag-modal-card" role="dialog" aria-modal="true">
         <div class="lag-modal-title lag-viking">Inscriptions prochainement</div>
@@ -455,6 +479,31 @@ function lag_events_render_detail_card(array $ev) : string {
         <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
       </div>
     </div>
+
+    <!-- Modal (club house - nous contacter) -->
+    <div class="lag-modal lag-modal-contact" aria-hidden="true">
+      <div class="lag-modal-backdrop"></div>
+      <div class="lag-modal-card" role="dialog" aria-modal="true">
+        <div class="lag-modal-title lag-viking">Nous contacter</div>
+        <div class="lag-modal-text">
+          Pour nous rencontrer au club house, il est nécessaire de prendre contact avec nous sur nos réseaux.
+        </div>
+
+        <?php if (!empty($club_socials)): ?>
+          <div class="lag-contact-socials" aria-label="Réseaux du chapitre référent">
+            <?php foreach ($club_socials as $k => $url): ?>
+              <?php $icon = lag_events_get_icon_url($k); if(!$icon) continue; ?>
+              <a class="lag-ev-social" href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" aria-label="<?php echo esc_attr($k); ?>">
+                <img src="<?php echo esc_url($icon); ?>" alt="" loading="lazy" />
+              </a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
+        <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+      </div>
+    </div>
+
   </div>
   <?php
   return ob_get_clean();
@@ -466,9 +515,14 @@ add_action('wp_ajax_nopriv_lag_events_fetch', 'lag_events_ajax_fetch');
 function lag_events_ajax_fetch() {
   $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
   if (!$id) wp_send_json_error(['msg' => 'ID manquant']);
+
   $ev = lag_events_get_event_data($id);
   if (empty($ev['id'])) wp_send_json_error(['msg' => 'Introuvable']);
-  wp_send_json_success(['html' => lag_events_render_detail_card($ev), 'event' => $ev]);
+
+  wp_send_json_success([
+    'html'  => lag_events_render_detail_card($ev),
+    'event' => $ev,
+  ]);
 }
 
 /* AJAX mois calendrier */
@@ -477,12 +531,13 @@ add_action('wp_ajax_nopriv_lag_events_month', 'lag_events_ajax_month');
 function lag_events_ajax_month() {
   $year = isset($_POST['year']) ? (int)$_POST['year'] : (int)date('Y');
   $month = isset($_POST['month']) ? (int)$_POST['month'] : (int)date('n');
+
   $map = lag_events_get_month_map($year, $month);
   wp_send_json_success([
-    'year'=>$year,
-    'month'=>$month,
-    'events_by_day'=>$map['events_by_day'],
-    'best_by_day'=>$map['best_by_day'],
+    'year'         => $year,
+    'month'        => $month,
+    'events_by_day'=> $map['events_by_day'],
+    'best_by_day'  => $map['best_by_day'],
   ]);
 }
 
@@ -502,11 +557,12 @@ add_shortcode('lag_events_page', function() {
     ? lag_events_render_detail_card(lag_events_get_event_data($next_id))
     : '<div class="lag-ev-empty">Aucun évènement.</div>';
 
-  $legend = [];
-  foreach ($cfg['types'] as $k => $t) $legend[] = ['key'=>$k,'label'=>$t['label'],'color'=>$t['color']];
-
   ob_start(); ?>
-  <div class="lag-events" data-selected="<?php echo (int)$next_id; ?>" data-year="<?php echo $year; ?>" data-month="<?php echo $month; ?>">
+  <div class="lag-events"
+       data-selected="<?php echo (int)$next_id; ?>"
+       data-year="<?php echo $year; ?>"
+       data-month="<?php echo $month; ?>">
+
     <div class="lag-top">
       <section class="lag-box lag-box-detail" id="lag-ev-detail"><?php echo $detail_html; ?></section>
 
@@ -515,15 +571,6 @@ add_shortcode('lag_events_page', function() {
           <button class="lag-cal-nav" data-dir="-1" type="button" aria-label="Mois précédent">‹</button>
           <div class="lag-cal-title" id="lag-cal-title"></div>
           <button class="lag-cal-nav" data-dir="1" type="button" aria-label="Mois suivant">›</button>
-        </div>
-
-        <div class="lag-cal-legend">
-          <?php foreach ($legend as $it): ?>
-            <span class="lag-leg-item">
-              <span class="lag-leg-swatch" style="background: <?php echo esc_attr($it['color']); ?>"></span>
-              <span class="lag-leg-label"><?php echo esc_html($it['label']); ?></span>
-            </span>
-          <?php endforeach; ?>
         </div>
 
         <div class="lag-cal-weekdays">
@@ -551,9 +598,7 @@ add_shortcode('lag_events_page', function() {
           <?php foreach ($upcoming as $ev): ?>
             <button class="lag-item" type="button"
               data-id="<?php echo (int)$ev['id']; ?>"
-              data-day="<?php echo esc_attr($ev['date_iso']); ?>"
-              style="--lag-color: <?php echo esc_attr($ev['type_color']); ?>">
-              <span class="lag-dot" aria-hidden="true"></span>
+              data-day="<?php echo esc_attr($ev['date_iso']); ?>">
               <span class="lag-item-main">
                 <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
                 <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
@@ -571,9 +616,7 @@ add_shortcode('lag_events_page', function() {
           <?php foreach ($past as $ev): ?>
             <button class="lag-item" type="button"
               data-id="<?php echo (int)$ev['id']; ?>"
-              data-day="<?php echo esc_attr($ev['date_iso']); ?>"
-              style="--lag-color: <?php echo esc_attr($ev['type_color']); ?>">
-              <span class="lag-dot" aria-hidden="true"></span>
+              data-day="<?php echo esc_attr($ev['date_iso']); ?>">
               <span class="lag-item-main">
                 <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
                 <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
@@ -609,7 +652,6 @@ add_shortcode('lag_events_page', function() {
       color: var(--text);
     }
 
-    /* Layout: même hauteur fiche / calendrier */
     .lag-top{
       display:grid;
       grid-template-columns: 1.6fr .8fr;
@@ -638,12 +680,8 @@ add_shortcode('lag_events_page', function() {
       height: 100%;
     }
 
-    #lag-ev-calendar{
-      display:flex;
-      flex-direction:column;
-    }
+    #lag-ev-calendar{ display:flex; flex-direction:column; }
 
-    /* Viking + or */
     .lag-viking{
       font-family: var(--viking), "Cinzel", serif !important;
       letter-spacing:.7px;
@@ -651,11 +689,7 @@ add_shortcode('lag_events_page', function() {
       text-shadow: 0 1px 0 rgba(0,0,0,.35);
     }
 
-    /* Titres listes */
-    .lag-box-title{
-      margin:0 0 10px 0;
-      font-size:18px;
-    }
+    .lag-box-title{ margin:0 0 10px 0; font-size:18px; }
 
     /* DETAIL */
     .lag-ev-card{ height:100%; display:flex; flex-direction:column; }
@@ -707,46 +741,27 @@ add_shortcode('lag_events_page', function() {
       filter: contrast(1.02) brightness(.92);
     }
 
-    .lag-ev-right{
-      display:flex;
-      flex-direction:column;
-      min-height: 0;
-    }
-
-    .lag-ev-type{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-bottom:8px;
-      color: var(--muted);
-      font-weight:950;
-      font-size:12px;
-      letter-spacing:.2px;
-    }
-    .lag-ev-type-dot{
-      width:10px; height:10px; border-radius:4px; display:inline-block;
-    }
-
+    .lag-ev-right{ display:flex; flex-direction:column; min-height:0; }
     .lag-ev-meta{ margin:6px 0; color: var(--muted); }
     .lag-ev-desc{ margin-top:10px; color: var(--text); opacity:.95; }
     .lag-ev-desc p{ margin: 0 0 8px 0; }
 
-    /* Chapitre + réseaux */
     .lag-ev-chap-row{
       display:flex;
       align-items:center;
       gap:8px;
       flex-wrap:wrap;
     }
-    .lag-ev-socials{
+    .lag-ev-socials,
+    .lag-contact-socials{
       display:inline-flex;
       gap:8px;
       align-items:center;
       margin-left:6px;
+      margin-top: 6px;
     }
     .lag-ev-social{
-      width:22px;
-      height:22px;
+      width:22px; height:22px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -756,8 +771,7 @@ add_shortcode('lag_events_page', function() {
       text-decoration:none !important;
     }
     .lag-ev-social img{
-      width:14px;
-      height:14px;
+      width:14px; height:14px;
       object-fit:contain;
       display:block;
       filter: brightness(.95);
@@ -767,12 +781,10 @@ add_shortcode('lag_events_page', function() {
       background: rgba(255,255,255,.05);
     }
 
-    /* Infos complémentaires sans pointillés */
     .lag-ev-more{
       color: rgba(255,255,255,.92) !important;
       font-weight:950;
       text-decoration:none !important;
-      border: none !important;
       padding: 8px 10px;
       border-radius: 12px;
       background: rgba(255,255,255,.04);
@@ -810,9 +822,7 @@ add_shortcode('lag_events_page', function() {
       margin-top:12px;
     }
 
-    /* =========================
-       BOUTONS OR (comme tu veux)
-       ========================= */
+    /* BOUTONS OR */
     .lag-ev-btn,
     .lag-item,
     .lag-cal-choice,
@@ -842,7 +852,7 @@ add_shortcode('lag_events_page', function() {
       white-space:nowrap;
     }
 
-    /* LISTS */
+    /* LISTS (sans pastille) */
     .lag-list{ display:flex; flex-direction:column; gap:10px; }
     .lag-list.is-scroll{
       max-height: 240px;
@@ -856,7 +866,7 @@ add_shortcode('lag_events_page', function() {
     }
 
     .lag-item{
-      display:flex; align-items:center; gap:10px;
+      display:flex; align-items:center;
       width:100%; text-align:left;
       border-radius:14px;
       padding:10px 12px;
@@ -864,18 +874,13 @@ add_shortcode('lag_events_page', function() {
       transition: border-color .12s ease, background .12s ease;
       -webkit-tap-highlight-color: transparent;
       outline: none !important;
+      gap: 0;
     }
     .lag-item:focus-visible{
       outline: 3px solid var(--sel) !important;
       outline-offset: 2px !important;
     }
-
-    .lag-dot{
-      width:10px; height:10px; border-radius:6px;
-      background: var(--lag-color, var(--gold));
-      filter: brightness(.92) saturate(1);
-    }
-    .lag-item-main{ min-width:0; }
+    .lag-item-main{ min-width:0; width:100%; }
     .lag-item-title{ font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .lag-item-sub{ font-size:12px; color: rgba(255,255,255,.78) !important; }
 
@@ -909,16 +914,11 @@ add_shortcode('lag_events_page', function() {
       box-shadow:none !important;
     }
 
-    .lag-cal-legend{ display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 12px; }
-    .lag-leg-item{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:900; color: var(--muted); }
-    .lag-leg-swatch{ width:12px; height:12px; border-radius:4px; display:inline-block; }
-
     .lag-cal-weekdays{
       display:grid; grid-template-columns: repeat(7, 1fr);
       gap:8px; margin-bottom:8px; font-size:12px; color: var(--muted2);
     }
     .lag-cal-weekdays span{ text-align:center; }
-
     .lag-cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
 
     .lag-day{
@@ -936,11 +936,28 @@ add_shortcode('lag_events_page', function() {
     }
     .lag-day:hover{ border-color: rgba(154,116,36,.20); }
     .lag-day.is-empty{ opacity:.25; cursor:default; background: transparent !important; }
-    .lag-day.has-events{ color:#101010; }
-
+    .lag-day.has-events{
+      background: var(--goldbg2);
+      border-color: rgba(154,116,36,.40);
+    }
     .lag-day.is-selected{
       outline: 3px solid var(--sel) !important;
       outline-offset: 2px !important;
+    }
+
+    /* Compteur d'évènements */
+    .lag-day-count{
+      position:absolute;
+      right:6px;
+      top:6px;
+      font-size:11px;
+      font-weight:950;
+      padding:2px 6px;
+      border-radius:999px;
+      background: rgba(0,0,0,.30);
+      border:1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.92);
+      pointer-events:none;
     }
 
     /* Modal (commun) */
@@ -992,17 +1009,12 @@ add_shortcode('lag_events_page', function() {
       text-align:left;
       font-weight:950;
     }
-    .lag-cal-choice-dot{ width:10px; height:10px; border-radius:6px; background: var(--c); }
 
     /* ===== MOBILE PATCH ===== */
     @media (max-width: 600px){
 
-      /* 1) Listes: afficher seulement JJ/MM */
+      /* Listes: afficher seulement JJ/MM */
       .lag-item-sub{
-        font-size: 12px;
-      }
-      .lag-item-sub{
-        /* On masque le texte long et on affiche data-short */
         color: transparent !important;
         position: relative;
       }
@@ -1014,7 +1026,7 @@ add_shortcode('lag_events_page', function() {
         top: 0;
       }
 
-      /* 2) Fiche détaillée: date sous le titre (au lieu d'à droite) */
+      /* Fiche détaillée: date sous le titre */
       .lag-ev-top{
         flex-direction: column;
         align-items: flex-start;
@@ -1025,34 +1037,23 @@ add_shortcode('lag_events_page', function() {
         white-space: normal;
       }
 
-      /* 3) Bouton inscription: ne dépasse jamais, texte adaptatif */
-      .lag-ev-actions{
-        justify-content: stretch;
-      }
-      .lag-ev-rightbtn{
-        width: 100%;
-      }
+      /* Boutons: jamais de dépassement */
+      .lag-ev-actions{ justify-content: stretch; }
+      .lag-ev-rightbtn{ width: 100%; }
       .lag-ev-btn{
         width: 100%;
         max-width: 100%;
-        white-space: normal;      /* autorise 2 lignes */
+        white-space: normal;
         line-height: 1.1;
         text-align: center;
         padding: 10px 12px;
       }
 
-      /* Si le bouton est "Inscription prochainement", on raccourcit automatiquement */
-      .lag-ev-btn[data-lag-soon="1"]{
-        font-size: 14px;
-      }
+      /* Raccourci "Inscription prochainement" */
+      .lag-ev-btn[data-lag-soon="1"]{ font-size: 14px; }
+      .lag-ev-btn[data-lag-soon="1"]{ color: transparent !important; position: relative; }
       .lag-ev-btn[data-lag-soon="1"]::after{
         content: "Inscription proch.";
-      }
-      .lag-ev-btn[data-lag-soon="1"]{
-        color: transparent !important;
-        position: relative;
-      }
-      .lag-ev-btn[data-lag-soon="1"]::after{
         color: rgba(255,255,255,.95);
         position: absolute;
         inset: 0;
@@ -1097,41 +1098,39 @@ add_shortcode('lag_events_page', function() {
       return (dow + 6) % 7;
     }
 
-    function gradientForColors(colors){
-      const uniq = [...new Set(colors.filter(Boolean))];
-      if(uniq.length <= 1) return uniq[0] || '';
-      const n = Math.min(uniq.length, 5);
-      const stops = [];
-      for(let i=0;i<n;i++){
-        const a = (i*(100/n)).toFixed(3);
-        const b = ((i+1)*(100/n)).toFixed(3);
-        stops.push(`${uniq[i]} ${a}% ${b}%`);
-      }
-      return `linear-gradient(135deg, ${stops.join(', ')})`;
-    }
-
     function openModal(modal){
+      if(!modal) return;
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden','false');
     }
     function closeModal(modal){
+      if(!modal) return;
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden','true');
     }
 
-    function bindModal(scope){
-      const modal = scope.querySelector('.lag-modal');
-      if(!modal) return;
-
-      modal.addEventListener('click', (e) => {
-        if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-modal-close')) {
-          closeModal(modal);
-        }
+    function bindModals(scope){
+      // close on backdrop / close btn
+      scope.querySelectorAll('.lag-modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-modal-close')) {
+            closeModal(modal);
+          }
+        });
       });
 
+      // soon button
       const soonBtn = scope.querySelector('[data-lag-soon="1"]');
       if(soonBtn){
-        soonBtn.addEventListener('click', () => openModal(modal));
+        const soonModal = scope.querySelector('.lag-modal-soon');
+        soonBtn.addEventListener('click', () => openModal(soonModal));
+      }
+
+      // contact button
+      const contactBtn = scope.querySelector('[data-lag-contact="1"]');
+      if(contactBtn){
+        const contactModal = scope.querySelector('.lag-modal-contact');
+        contactBtn.addEventListener('click', () => openModal(contactModal));
       }
     }
 
@@ -1148,7 +1147,7 @@ add_shortcode('lag_events_page', function() {
         .then(res => {
           if(res?.success){
             detailBox.innerHTML = res.data.html;
-            bindModal(detailBox);
+            bindModals(detailBox);
           }
         })
         .catch(()=>{});
@@ -1163,16 +1162,10 @@ add_shortcode('lag_events_page', function() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'lag-cal-choice';
-        btn.style.setProperty('--c', ev.type_color || '#999');
-
-        const dot = document.createElement('span');
-        dot.className = 'lag-cal-choice-dot';
-        dot.style.background = (ev.type_color || '#999');
 
         const txt = document.createElement('span');
         txt.textContent = ev.title;
 
-        btn.appendChild(dot);
         btn.appendChild(txt);
 
         btn.addEventListener('click', () => {
@@ -1194,9 +1187,7 @@ add_shortcode('lag_events_page', function() {
       const best = monthData.best_by_day?.[dayIso];
 
       if(list.length > 1){
-        // Pop-up pour choisir
         showDayChoicesPopup(dayIso);
-        // Et on affiche par défaut le "best"
         if(best?.id) selectEvent(best.id);
         else if(list[0]?.id) selectEvent(list[0].id);
         return;
@@ -1229,21 +1220,20 @@ add_shortcode('lag_events_page', function() {
         cell.className = 'lag-day' + (list ? ' has-events' : '');
         cell.textContent = d;
 
-        if(list && list.length){
-          const colors = list.map(e => e.type_color);
-          const bg = gradientForColors(colors);
-          if(bg){
-            if(bg.startsWith('linear-gradient')) cell.style.backgroundImage = bg;
-            else cell.style.background = bg;
-          }
+        if(list && list.length > 1){
+          const badge = document.createElement('span');
+          badge.className = 'lag-day-count';
+          badge.textContent = '+' + (list.length - 1);
+          cell.appendChild(badge);
         }
-
-        // ✅ SUPPRIMÉ: badge compteur (tu ne veux pas le "2")
-        // if(list && list.length > 1){ ... }
 
         if(dayIso === selectedDay) cell.classList.add('is-selected');
 
-        cell.addEventListener('click', () => selectDay(dayIso));
+        if(list && list.length){
+          cell.addEventListener('click', () => selectDay(dayIso));
+        } else {
+          cell.addEventListener('click', () => selectDay(dayIso)); // option: clique jour vide => pas d'action, mais conserve sélection
+        }
         calGrid.appendChild(cell);
       }
     }
@@ -1304,8 +1294,8 @@ add_shortcode('lag_events_page', function() {
       }
     }
 
-    // bind modal inscription
-    bindModal(detailBox);
+    // bind modals fiche
+    bindModals(detailBox);
 
     // listes scroll > 5
     function applyScrollIfNeeded(listEl){
