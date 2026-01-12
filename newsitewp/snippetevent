@@ -475,8 +475,12 @@ function lag_events_render_detail_card(array $ev) : string {
       <div class="lag-modal-backdrop"></div>
       <div class="lag-modal-card" role="dialog" aria-modal="true">
         <div class="lag-modal-title lag-viking">Inscriptions prochainement</div>
-        <div class="lag-modal-text">Les inscriptions ne sont pas encore disponibles. Reviens bientôt.</div>
-        <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+        <div class="lag-modal-body">
+          <div class="lag-modal-text">Les inscriptions ne sont pas encore disponibles. Reviens bientôt.</div>
+        </div>
+        <div class="lag-modal-actions">
+          <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+        </div>
       </div>
     </div>
 
@@ -500,7 +504,9 @@ function lag_events_render_detail_card(array $ev) : string {
           </div>
         <?php endif; ?>
 
-        <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+        <div class="lag-modal-actions">
+			<button type="button" class="lag-ev-btn lag-modal-close">OK</button>
+		</div>
       </div>
     </div>
 
@@ -584,8 +590,12 @@ add_shortcode('lag_events_page', function() {
           <div class="lag-modal-backdrop"></div>
           <div class="lag-modal-card" role="dialog" aria-modal="true">
             <div class="lag-modal-title lag-viking">Évènements du jour</div>
-            <div class="lag-day-modal-items" id="lag-day-modal-items"></div>
-            <button type="button" class="lag-ev-btn lag-day-modal-close">Fermer</button>
+            <div class="lag-modal-body">
+              <div class="lag-day-modal-items" id="lag-day-modal-items"></div>
+            </div>
+            <div class="lag-modal-actions">
+              <button type="button" class="lag-ev-btn lag-day-modal-close">Fermer</button>
+            </div>
           </div>
         </div>
       </section>
@@ -969,6 +979,8 @@ add_shortcode('lag_events_page', function() {
       z-index:9998;
     }
     .lag-modal-card{
+      display:flex;
+      flex-direction:column;
       position:fixed;
       top:50%; left:50%;
       transform: translate(-50%,-50%);
@@ -983,6 +995,16 @@ add_shortcode('lag_events_page', function() {
     .lag-modal-title{ font-weight:950; margin-bottom:10px; }
     .lag-modal-text{ color: var(--muted); margin-bottom:12px; }
 
+
+    .lag-modal-body{
+      flex: 1;
+      min-height: 0;
+    }
+    .lag-modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      margin-top:12px;
+    }
     .lag-day-modal-items{
       display:flex;
       flex-direction:column;
