@@ -1,1353 +1,792 @@
-/**
- * LAG EVENTS - Page événements 4 zones (fiche + calendrier / listes)
- * Shortcode: [lag_events_page]
- *
- * NOTE IMPORTANT:
- * - Le chapitre "référent" (pour Club House -> réseaux Facebook/Instagram) est lu depuis le CPT "general".
- * - Renseigne le nom exact du champ ACF contenant l'ID du chapitre référent ci-dessous :
- *   'general_ref_chapitre_id' => 'TON_CHAMP_ACF_ICI'
- */
-
 if (!defined('ABSPATH')) exit;
 
-function lag_events_config() {
+/**
+ * Chapter Calendar (Lag Spirit) — Shortcode: [chapter_calendar]
+ * CPT: contenu
+ * Champs meta (JetEngine/MetaBox):
+ * - content_type (radio) => doit valoir "event" pour apparaître dans le calendrier
+ * - event_date (datetime-local) => "Save as timestamp" ON (stockage Unix timestamp)
+ * - event_location (text)
+ * - event_type (radio) => sert à la couleur
+ */
+
+add_action('wp_ajax_chapter_calendar_month', 'chapter_calendar_ajax_month');
+add_action('wp_ajax_nopriv_chapter_calendar_month', 'chapter_calendar_ajax_month');
+
+function chapter_calendar_config(): array {
   return [
-    'post_type' => 'evenement',
+    'shortcode' => 'chapter_calendar',
+    'post_type' => 'contenu',
 
-    // --- MAPPING CHAMPS ACF (EVENEMENT) ---
-    'acf' => [
-      'type'             => 'evenement_type',
-      'datetime'         => 'evenement_date_heure',
-      'lieu'             => 'evenement_lieu',
-      'maps_url'         => 'evenement_lien_google_maps',
-      'affiche'          => 'evenement_affiche',
-      'description'      => 'evenement_description',
-      'inscription'      => 'evenement_inscription',          // none | free | paid
-      'lien_inscription' => 'evenement_lien_inscription',
-      'prix_inscription' => 'evenement_prix_inscription',
-      'lien_annexe'      => 'evenement_lien_annexe',
-
-      // inter-chapitre (nom + ID du chapitre visité)
-      'chapitre_nom'     => 'evenement_chapitre_visite_nom',
-      'chapitre_id'      => 'evenement_chapitre_visite_id',
+    // champs meta
+    'meta' => [
+      'content_type'   => 'content_type',
+      'event_value'    => 'event',          // valeur du radio "Evenement"
+      'event_date'     => 'event_date',     // timestamp
+      'event_location' => 'event_location',
+      'event_type'     => 'event_type',
     ],
 
-    // --- CPT GENERAL : champ ACF qui contient l'ID du chapitre référent (pour Club House) ---
-    // ⛔️ A MODIFIER si ton champ n’a pas ce nom
-    'general_ref_chapitre_id' => 'general_chapitre_reference_id',
-
-    // --- ACF CHAPITRES (réseaux) ---
-    'chapitre_acf' => [
-      'site'      => 'chapitre_site',
-      'linktree'  => 'chapitre_linktree',
-      'facebook'  => 'chapitre_facebook',
-      'instagram' => 'chapitre_instagram',
-      'youtube'   => 'chapitre_youtube',
-      'tiktok'    => 'chapitre_tiktok',
+    // Couleurs par type (modifiable au début du code)
+    // clés = valeur stockée dans event_type (radio)
+    'type_colors' => [
+      'club_house' => '#9A7424', // or
+      'run'        => '#2F7DE1', // bleu
+      'stand'      => '#8B5CF6', // violet
+      'party'      => '#E24B3B', // rouge
+      'other'      => '#6B7280', // gris
     ],
 
-    // --- ICONES (ACF dans CPT "general" qui renvoient une URL ou ID/array image) ---
-    'icons_acf' => [
-      'post_type' => 'general',
-      'site'      => 'general_icone_site',
-      'linktree'  => 'general_icone_linktree',
-      'facebook'  => 'general_icone_facebook',
-      'instagram' => 'general_icone_instagram',
-      'youtube'   => 'general_icone_youtube',
-      'tiktok'    => 'general_icone_tiktok',
+    // Libellés de légende (TU MODIFIES ICI)
+    'type_labels' => [
+      'club_house' => 'Club House',
+      'run'        => 'Run',
+      'stand'      => 'Stand',
+      'party'      => 'Party',
+      'other'      => 'Other',
     ],
 
-    // --- UI ---
-    'ui' => [
-      'bg'          => '#0f0f10',
-      'panel'       => '#17181a',
-      'panel_2'     => '#1d1f22',
-      'border'      => 'rgba(255,255,255,.08)',
-      'text'        => 'rgba(255,255,255,.92)',
-      'muted'       => 'rgba(255,255,255,.72)',
-      'muted2'      => 'rgba(255,255,255,.58)',
-      'shadow'      => 'rgba(0,0,0,.55)',
+    // couleur fallback si type inconnu/vide
+    'default_color' => '#9A7424',
 
-      // OR biker
-      'gold'        => '#9a7424',
-      'goldbg'      => 'rgba(154,116,36,.18)',
-      'goldbg2'     => 'rgba(154,116,36,.28)',
-      'goldbd'      => 'rgba(154,116,36,.40)',
-
-      // sélection
-      'sel'         => 'rgba(154,116,36,.55)',
-
-      // police (Elementor)
-      'font_viking' => 'Viking',
-    ],
-
-    'limits' => [
-      'upcoming' => 50,
-      'past'     => 50,
+    // LÉGENDE : ON/OFF
+    'legend' => [
+      'enabled' => true, // <- mets false pour désactiver la légende
     ],
   ];
 }
 
-function lag_events_parse_datetime($raw) : ?DateTime {
-  if (!$raw) return null;
-  $ts = strtotime($raw);
-  if ($ts) {
-    $dt = new DateTime('@'.$ts);
-    $dt->setTimezone(wp_timezone());
-    return $dt;
-  }
-  foreach (['Y-m-d H:i:s','Y-m-d H:i','d/m/Y H:i','d/m/Y G:i','d/m/Y g:i a','m/d/Y g:i a'] as $fmt) {
-    $dt = DateTime::createFromFormat($fmt, $raw, wp_timezone());
-    if ($dt instanceof DateTime) return $dt;
-  }
-  return null;
+/** Util: récupère une valeur meta propre */
+function cc_meta($post_id, $key) {
+  $v = get_post_meta($post_id, $key, true);
+  if (is_string($v)) $v = trim($v);
+  return $v;
 }
 
-/**
- * GENERAL: get single General post ID
- */
-function lag_events_get_general_id(): ?int {
-  $cfg = lag_events_config();
-  $pt = $cfg['icons_acf']['post_type'] ?? 'general';
+/** Récupère les events du mois, groupés par jour YYYY-MM-DD */
+function chapter_calendar_get_month_events(int $year, int $month): array {
+  $cfg = chapter_calendar_config();
+  $m = $cfg['meta'];
 
-  $ids = get_posts([
-    'post_type'      => $pt,
-    'post_status'    => ['publish','draft','pending','private'],
-    'posts_per_page' => 1,
-    'orderby'        => 'date',
-    'order'          => 'ASC',
-    'fields'         => 'ids',
-  ]);
-  return !empty($ids) ? (int)$ids[0] : null;
-}
+  $tz = wp_timezone();
+  $start = new DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month), $tz);
+  $end   = $start->modify('first day of next month');
 
-/**
- * Get icon URL from General (supports URL / image ID / image array)
- */
-function lag_events_get_icon_url(string $key): string {
-  $cfg = lag_events_config();
-  $general_id = lag_events_get_general_id();
-  if (!$general_id) return '';
-
-  $field = $cfg['icons_acf'][$key] ?? '';
-  if (!$field) return '';
-
-  $val = get_field($field, $general_id);
-  if (!$val) return '';
-
-  if (is_numeric($val)) {
-    $url = wp_get_attachment_url((int)$val);
-    return $url ? esc_url($url) : '';
-  }
-  if (is_array($val) && !empty($val['url'])) return esc_url($val['url']);
-  if (is_string($val) && filter_var($val, FILTER_VALIDATE_URL)) return esc_url($val);
-
-  return '';
-}
-
-/**
- * Get chapitre socials (only filled URLs)
- */
-function lag_events_get_chapitre_socials(int $chapitre_id): array {
-  $cfg = lag_events_config();
-  $map = $cfg['chapitre_acf'] ?? [];
-  $out = [];
-
-  foreach ($map as $key => $acf_field) {
-    $v = trim((string) get_field($acf_field, $chapitre_id));
-    if ($v && filter_var($v, FILTER_VALIDATE_URL)) {
-      $out[$key] = esc_url($v);
-    }
-  }
-  return $out;
-}
-
-/**
- * Read referent chapitre ID from CPT "general"
- */
-function lag_events_get_referent_chapitre_id(): int {
-  $cfg = lag_events_config();
-  $general_id = lag_events_get_general_id();
-  if (!$general_id) return 0;
-
-  $field = $cfg['general_ref_chapitre_id'] ?? '';
-  if (!$field) return 0;
-
-  $v = get_field($field, $general_id);
-
-  // support numeric / array / object
-  if (is_numeric($v)) return (int)$v;
-  if (is_array($v) && isset($v['ID'])) return (int)$v['ID'];
-  if (is_object($v) && isset($v->ID)) return (int)$v->ID;
-
-  return 0;
-}
-
-function lag_events_get_event_data($post_id) : array {
-  $cfg = lag_events_config();
-  $acf = $cfg['acf'];
-  $ui  = $cfg['ui'];
-
-  $type = (string) get_field($acf['type'], $post_id);
-  $dt   = lag_events_parse_datetime(get_field($acf['datetime'], $post_id));
-
-  $affiche_id = (int) get_field($acf['affiche'], $post_id);
-
-  $prix = get_field($acf['prix_inscription'], $post_id);
-  $prix = is_numeric($prix) ? (float)$prix : null;
-
-  return [
-    'id' => (int)$post_id,
-    'title' => get_the_title($post_id),
-
-    // type conservé pour logique (club_house / inter-chapitre), mais PLUS affiché visuellement
-    'type' => $type,
-
-    'date_iso'   => $dt ? $dt->format('Y-m-d') : '',
-    'date_human' => $dt ? date_i18n('D j M Y \à H\hi', $dt->getTimestamp()) : '',
-    'timestamp'  => $dt ? $dt->getTimestamp() : 0,
-
-    'lieu' => (string) get_field($acf['lieu'], $post_id),
-    'maps' => (string) get_field($acf['maps_url'], $post_id),
-
-    'affiche_url' => $affiche_id ? wp_get_attachment_image_url($affiche_id, 'large') : '',
-    'description' => (string) get_field($acf['description'], $post_id),
-
-    'inscription'      => (string) get_field($acf['inscription'], $post_id),
-    'lien_inscription' => (string) get_field($acf['lien_inscription'], $post_id),
-    'prix_inscription' => $prix,
-
-    'lien_annexe' => (string) get_field($acf['lien_annexe'], $post_id),
-
-    'chapitre_nom' => (string) get_field($acf['chapitre_nom'], $post_id),
-    'chapitre_id'  => (int) get_field($acf['chapitre_id'], $post_id),
-
-    // couleur unique (or)
-    'ui_color' => (string)($ui['gold'] ?? '#9a7424'),
-  ];
-}
-
-function lag_events_get_next_event_id() : int {
-  $cfg = lag_events_config();
-  $acf_dt = $cfg['acf']['datetime'];
-  $now = current_time('timestamp');
+  $start_ts = $start->getTimestamp();
+  $end_ts   = $end->getTimestamp() - 1;
 
   $q = new WP_Query([
-    'post_type' => $cfg['post_type'],
-    'post_status' => 'publish',
-    'posts_per_page' => 1,
-    'meta_key' => $acf_dt,
-    'orderby' => 'meta_value',
-    'order' => 'ASC',
-    'meta_query' => [[
-      'key' => $acf_dt,
-      'value' => date('Y-m-d H:i:s', $now),
-      'compare' => '>=',
-      'type' => 'DATETIME',
-    ]],
-  ]);
-  if ($q->have_posts()) return (int)$q->posts[0]->ID;
-
-  $q2 = new WP_Query([
-    'post_type' => $cfg['post_type'],
-    'post_status' => 'publish',
-    'posts_per_page' => 1,
-    'meta_key' => $acf_dt,
-    'orderby' => 'meta_value',
-    'order' => 'DESC',
-  ]);
-  return $q2->have_posts() ? (int)$q2->posts[0]->ID : 0;
-}
-
-function lag_events_get_list($mode = 'upcoming') : array {
-  $cfg = lag_events_config();
-  $acf_dt = $cfg['acf']['datetime'];
-  $now = current_time('timestamp');
-  $is_upcoming = ($mode === 'upcoming');
-
-  $q = new WP_Query([
-    'post_type' => $cfg['post_type'],
-    'post_status' => 'publish',
-    'posts_per_page' => $cfg['limits'][$mode] ?? 50,
-    'meta_key' => $acf_dt,
-    'orderby' => 'meta_value',
-    'order' => $is_upcoming ? 'ASC' : 'DESC',
-    'meta_query' => [[
-      'key' => $acf_dt,
-      'value' => date('Y-m-d H:i:s', $now),
-      'compare' => $is_upcoming ? '>=' : '<',
-      'type' => 'DATETIME',
-    ]],
-  ]);
-
-  return array_map(fn($p) => lag_events_get_event_data($p->ID), $q->posts);
-}
-
-function lag_events_get_month_map(int $year, int $month) : array {
-  $cfg = lag_events_config();
-  $acf_dt = $cfg['acf']['datetime'];
-
-  $start = new DateTime("$year-$month-01 00:00:00", wp_timezone());
-  $end = clone $start; $end->modify('first day of next month');
-
-  $q = new WP_Query([
-    'post_type' => $cfg['post_type'],
-    'post_status' => 'publish',
+    'post_type'      => $cfg['post_type'],
+    'post_status'    => 'publish',
     'posts_per_page' => -1,
-    'meta_key' => $acf_dt,
-    'orderby' => 'meta_value',
-    'order' => 'ASC',
-    'meta_query' => [[
-      'key' => $acf_dt,
-      'value' => [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')],
-      'compare' => 'BETWEEN',
-      'type' => 'DATETIME',
-    ]],
+    'orderby'        => 'meta_value_num',
+    'meta_key'       => $m['event_date'],
+    'order'          => 'ASC',
+    'meta_query'     => [
+      'relation' => 'AND',
+      [
+        'key'     => $m['content_type'],
+        'value'   => $m['event_value'],
+        'compare' => '=',
+      ],
+      [
+        'key'     => $m['event_date'],
+        'value'   => [$start_ts, $end_ts],
+        'type'    => 'NUMERIC',
+        'compare' => 'BETWEEN',
+      ],
+    ],
   ]);
 
   $by_day = [];
+
   foreach ($q->posts as $p) {
-    $ev = lag_events_get_event_data($p->ID);
-    if (!$ev['date_iso']) continue;
-    $by_day[$ev['date_iso']][] = $ev;
+    $pid = (int) $p->ID;
+
+    $ts = (int) cc_meta($pid, $m['event_date']);
+    if (!$ts) continue;
+
+    $dt = (new DateTimeImmutable('@' . $ts))->setTimezone($tz);
+    $day = $dt->format('Y-m-d');
+
+    $type = (string) cc_meta($pid, $m['event_type']);
+    $loc  = (string) cc_meta($pid, $m['event_location']);
+
+    $by_day[$day][] = [
+      'id'    => $pid,
+      'title' => get_the_title($pid),
+      'url'   => get_permalink($pid),
+      'ts'    => $ts,
+      'time'  => $dt->format('H:i'),
+      'loc'   => $loc,
+      'type'  => $type,
+    ];
   }
 
-  // "best" = premier de la journée (peu importe type, car non utilisé visuellement)
-  $best_by_day = [];
-  foreach ($by_day as $day => $events) {
-    $best_by_day[$day] = $events[0];
-  }
-
-  return [
-    'events_by_day' => $by_day,
-    'best_by_day'   => $best_by_day,
-  ];
+  return $by_day;
 }
 
-function lag_events_svg_map_pin() : string {
-  return '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path fill="currentColor" d="M12 2c-3.86 0-7 3.14-7 7c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
-  </svg>';
-}
+function chapter_calendar_ajax_month() {
+  $year  = isset($_POST['year']) ? (int) $_POST['year'] : (int) current_time('Y');
+  $month = isset($_POST['month']) ? (int) $_POST['month'] : (int) current_time('n');
 
-/**
- * Detail card (fiche)
- * - Type non affiché
- * - Club House: bouton "Nous contacter" => modal avec texte + icônes FB/IG du chapitre référent
- * - Inter-chapitre: on garde la ligne "Chapitre :" + réseaux du chapitre visité (si ID dispo)
- */
-function lag_events_render_detail_card(array $ev) : string {
-  $is_club_house = ($ev['type'] === 'club_house');
-
-  $title = esc_html($ev['title']);
-  $date  = esc_html($ev['date_human']);
-  $img   = $ev['affiche_url'] ? esc_url($ev['affiche_url']) : '';
-
-  $lieu = trim((string)$ev['lieu']);
-  $maps = trim((string)$ev['maps']);
-  $maps_url = $maps ? esc_url($maps) : '';
-
-  $chapitre = trim((string)$ev['chapitre_nom']);
-  $desc = (string)$ev['description'];
-
-  $insc = (string)$ev['inscription']; // none/free/paid
-  $lien_insc = trim((string)$ev['lien_inscription']);
-  $prix = $ev['prix_inscription'];
-
-  $lien_annexe = trim((string)$ev['lien_annexe']);
-
-  // Inscription info (SAUF club house)
-  $insc_info = '';
-  if (!$is_club_house) {
-    if ($insc === 'free') $insc_info = 'Inscription : Gratuit';
-    if ($insc === 'paid') {
-      $p = ($prix !== null) ? number_format_i18n((float)$prix, 2).' €' : '';
-      $insc_info = 'Inscription : Payant'.($p ? ' • '.$p : '');
-    }
-  }
-
-  // Club house socials: chapitre référent (FB/IG seulement)
-  $club_socials = [];
-  if ($is_club_house) {
-    $ref_id = lag_events_get_referent_chapitre_id();
-    if ($ref_id) {
-      $all = lag_events_get_chapitre_socials($ref_id);
-      // uniquement facebook + instagram
-      if (!empty($all['facebook']))  $club_socials['facebook']  = $all['facebook'];
-      if (!empty($all['instagram'])) $club_socials['instagram'] = $all['instagram'];
-    }
-  }
-
-  ob_start(); ?>
-  <div class="lag-ev-card">
-    <div class="lag-ev-top">
-      <h3 class="lag-ev-title lag-viking"><?php echo $title; ?></h3>
-      <?php if ($date): ?>
-        <div class="lag-ev-date"><?php echo $date; ?></div>
-      <?php endif; ?>
-    </div>
-
-    <div class="lag-ev-two">
-      <?php if ($img): ?>
-        <div class="lag-ev-poster">
-          <img src="<?php echo $img; ?>" alt="" loading="lazy" />
-        </div>
-      <?php endif; ?>
-
-      <div class="lag-ev-right">
-
-        <?php if (!$is_club_house && $lieu): ?>
-          <div class="lag-ev-meta lag-ev-lieu-row">
-            <strong>Lieu :</strong>
-            <span class="lag-ev-lieu-text"><?php echo esc_html($lieu); ?></span>
-            <?php if ($maps_url): ?>
-              <a class="lag-ev-maps-link" href="<?php echo $maps_url; ?>" target="_blank" rel="noopener" aria-label="Ouvrir dans Google Maps">
-                <?php echo lag_events_svg_map_pin(); ?>
-              </a>
-            <?php endif; ?>
-          </div>
-        <?php endif; ?>
-
-        <?php if ($chapitre): ?>
-          <div class="lag-ev-meta lag-ev-chap-row">
-            <strong>Chapitre :</strong>
-            <span class="lag-ev-chap-name"><?php echo esc_html($chapitre); ?></span>
-
-            <?php
-              // Réseaux seulement si chapitre visité + ID chapitre dispo
-              if (!empty($ev['chapitre_id'])) {
-                $socials = lag_events_get_chapitre_socials((int)$ev['chapitre_id']);
-                if (!empty($socials)) {
-                  echo '<span class="lag-ev-socials" aria-label="Réseaux du chapitre">';
-                  foreach ($socials as $k => $url) {
-                    $icon = lag_events_get_icon_url($k);
-                    if (!$icon) continue;
-                    echo '<a class="lag-ev-social" href="'.esc_url($url).'" target="_blank" rel="noopener" aria-label="'.esc_attr($k).'">';
-                    echo '<img src="'.esc_url($icon).'" alt="" loading="lazy" />';
-                    echo '</a>';
-                  }
-                  echo '</span>';
-                }
-              }
-            ?>
-          </div>
-        <?php endif; ?>
-
-        <?php if (!empty($desc)): ?>
-          <div class="lag-ev-desc"><?php echo wp_kses_post($desc); ?></div>
-        <?php endif; ?>
-
-        <?php if ($insc_info): ?>
-          <div class="lag-ev-meta"><strong><?php echo esc_html($insc_info); ?></strong></div>
-        <?php endif; ?>
-
-        <?php if (!empty($lien_annexe)): ?>
-          <div class="lag-ev-meta">
-            <a class="lag-ev-more" href="<?php echo esc_url($lien_annexe); ?>" target="_blank" rel="noopener">Infos complémentaires</a>
-          </div>
-        <?php endif; ?>
-
-        <div class="lag-ev-spacer"></div>
-
-        <div class="lag-ev-actions">
-          <div></div>
-          <div class="lag-ev-rightbtn">
-            <?php if ($is_club_house): ?>
-              <button type="button" class="lag-ev-btn" data-lag-contact="1">Nous contacter</button>
-            <?php else: ?>
-              <?php
-                if ($insc === 'free' || $insc === 'paid') {
-                  if (!empty($lien_insc)) {
-                    echo '<a class="lag-ev-btn" href="'.esc_url($lien_insc).'" target="_blank" rel="noopener">S\'inscrire</a>';
-                  } else {
-                    echo '<button type="button" class="lag-ev-btn" data-lag-soon="1">Inscription prochainement</button>';
-                  }
-                }
-              ?>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal (inscription prochainement) -->
-    <div class="lag-modal lag-modal-soon" aria-hidden="true">
-      <div class="lag-modal-backdrop"></div>
-      <div class="lag-modal-card" role="dialog" aria-modal="true">
-        <div class="lag-modal-title lag-viking">Inscriptions prochainement</div>
-        <div class="lag-modal-body">
-          <div class="lag-modal-text">Les inscriptions ne sont pas encore disponibles. Reviens bientôt.</div>
-        </div>
-        <div class="lag-modal-actions">
-          <button type="button" class="lag-ev-btn lag-modal-close">OK</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal (club house - nous contacter) -->
-    <div class="lag-modal lag-modal-contact" aria-hidden="true">
-      <div class="lag-modal-backdrop"></div>
-      <div class="lag-modal-card" role="dialog" aria-modal="true">
-        <div class="lag-modal-title lag-viking">Nous contacter</div>
-        <div class="lag-modal-text">
-          Pour nous rencontrer au club house, il est nécessaire de prendre contact avec nous sur nos réseaux.
-        </div>
-
-        <?php if (!empty($club_socials)): ?>
-          <div class="lag-contact-socials" aria-label="Réseaux du chapitre référent">
-            <?php foreach ($club_socials as $k => $url): ?>
-              <?php $icon = lag_events_get_icon_url($k); if(!$icon) continue; ?>
-              <a class="lag-ev-social" href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener" aria-label="<?php echo esc_attr($k); ?>">
-                <img src="<?php echo esc_url($icon); ?>" alt="" loading="lazy" />
-              </a>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-
-        <div class="lag-modal-actions">
-			<button type="button" class="lag-ev-btn lag-modal-close">OK</button>
-		</div>
-      </div>
-    </div>
-
-  </div>
-  <?php
-  return ob_get_clean();
-}
-
-/* AJAX fetch détail */
-add_action('wp_ajax_lag_events_fetch', 'lag_events_ajax_fetch');
-add_action('wp_ajax_nopriv_lag_events_fetch', 'lag_events_ajax_fetch');
-function lag_events_ajax_fetch() {
-  $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-  if (!$id) wp_send_json_error(['msg' => 'ID manquant']);
-
-  $ev = lag_events_get_event_data($id);
-  if (empty($ev['id'])) wp_send_json_error(['msg' => 'Introuvable']);
+  $events = chapter_calendar_get_month_events($year, $month);
 
   wp_send_json_success([
-    'html'  => lag_events_render_detail_card($ev),
-    'event' => $ev,
+    'year'   => $year,
+    'month'  => $month,
+    'events' => $events,
   ]);
 }
 
-/* AJAX mois calendrier */
-add_action('wp_ajax_lag_events_month', 'lag_events_ajax_month');
-add_action('wp_ajax_nopriv_lag_events_month', 'lag_events_ajax_month');
-function lag_events_ajax_month() {
-  $year = isset($_POST['year']) ? (int)$_POST['year'] : (int)date('Y');
-  $month = isset($_POST['month']) ? (int)$_POST['month'] : (int)date('n');
-
-  $map = lag_events_get_month_map($year, $month);
-  wp_send_json_success([
-    'year'         => $year,
-    'month'        => $month,
-    'events_by_day'=> $map['events_by_day'],
-    'best_by_day'  => $map['best_by_day'],
-  ]);
+/** Types présents dans un mapping d'events */
+function cc_present_types(array $events_by_day): array {
+  $types = [];
+  foreach ($events_by_day as $day => $list) {
+    if (!is_array($list)) continue;
+    foreach ($list as $ev) {
+      $t = is_array($ev) && isset($ev['type']) ? (string)$ev['type'] : '';
+      if ($t !== '') $types[$t] = true;
+    }
+  }
+  return array_keys($types);
 }
 
-add_shortcode('lag_events_page', function() {
-  $cfg = lag_events_config();
-  $ui  = $cfg['ui'];
+add_shortcode('chapter_calendar', function($atts = []) {
+  $cfg = chapter_calendar_config();
 
-  $next_id  = lag_events_get_next_event_id();
-  $upcoming = lag_events_get_list('upcoming');
-  $past     = lag_events_get_list('past');
+  $year  = (int) current_time('Y');
+  $month = (int) current_time('n');
+  $events = chapter_calendar_get_month_events($year, $month);
 
-  $year  = (int)date('Y');
-  $month = (int)date('n');
-  $month_map = lag_events_get_month_map($year, $month);
+  $colors_json = wp_json_encode($cfg['type_colors']);
+  $labels_json = wp_json_encode($cfg['type_labels']);
+  $events_json = wp_json_encode($events);
 
-  $detail_html = $next_id
-    ? lag_events_render_detail_card(lag_events_get_event_data($next_id))
-    : '<div class="lag-ev-empty">Aucun évènement.</div>';
+  $present_types = cc_present_types($events);
 
   ob_start(); ?>
-  <div class="lag-events"
-       data-selected="<?php echo (int)$next_id; ?>"
-       data-year="<?php echo $year; ?>"
-       data-month="<?php echo $month; ?>">
+  <div class="cc-root"
+       data-year="<?php echo esc_attr($year); ?>"
+       data-month="<?php echo esc_attr($month); ?>"
+       data-colors='<?php echo esc_attr($colors_json); ?>'
+       data-labels='<?php echo esc_attr($labels_json); ?>'
+       data-default-color="<?php echo esc_attr($cfg['default_color']); ?>"
+       data-events='<?php echo esc_attr($events_json); ?>'
+       data-legend-enabled="<?php echo !empty($cfg['legend']['enabled']) ? '1' : '0'; ?>">
 
-    <div class="lag-top">
-      <section class="lag-box lag-box-detail" id="lag-ev-detail"><?php echo $detail_html; ?></section>
-
-      <section class="lag-box lag-box-cal" id="lag-ev-calendar">
-        <div class="lag-cal-head">
-          <button class="lag-cal-nav" data-dir="-1" type="button" aria-label="Mois précédent">‹</button>
-          <div class="lag-cal-title" id="lag-cal-title"></div>
-          <button class="lag-cal-nav" data-dir="1" type="button" aria-label="Mois suivant">›</button>
-        </div>
-
-        <div class="lag-cal-weekdays">
-          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-        </div>
-
-        <div class="lag-cal-grid" id="lag-cal-grid"></div>
-
-        <!-- POPUP choix évènements du jour -->
-        <div class="lag-modal lag-day-modal" aria-hidden="true">
-          <div class="lag-modal-backdrop"></div>
-          <div class="lag-modal-card" role="dialog" aria-modal="true">
-            <div class="lag-modal-title lag-viking">Évènements du jour</div>
-            <div class="lag-modal-body">
-              <div class="lag-day-modal-items" id="lag-day-modal-items"></div>
-            </div>
-            <div class="lag-modal-actions">
-              <button type="button" class="lag-ev-btn lag-day-modal-close">Fermer</button>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div class="cc-head">
+      <button class="cc-nav" type="button" data-dir="-1" aria-label="Mois précédent">‹</button>
+      <div class="cc-title" aria-live="polite"></div>
+      <button class="cc-nav" type="button" data-dir="1" aria-label="Mois suivant">›</button>
     </div>
 
-    <div class="lag-bottom">
-      <section class="lag-box" id="lag-ev-upcoming">
-        <h3 class="lag-box-title lag-viking">À venir</h3>
-        <div class="lag-list" id="lag-list-upcoming">
-          <?php foreach ($upcoming as $ev): ?>
-            <button class="lag-item" type="button"
-              data-id="<?php echo (int)$ev['id']; ?>"
-              data-day="<?php echo esc_attr($ev['date_iso']); ?>">
-              <span class="lag-item-main">
-                <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
-                <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
-                  <?php echo esc_html($ev['date_human']); ?>
-                </span>
-              </span>
-            </button>
-          <?php endforeach; ?>
-        </div>
-      </section>
+    <!-- ✅ LÉGENDE (sera aussi mise à jour en JS quand tu changes de mois) -->
+    <div class="cc-legend" aria-label="Légende des types d'évènements"
+         <?php echo empty($cfg['legend']['enabled']) ? 'style="display:none"' : ''; ?>>
+      <?php if (!empty($cfg['legend']['enabled'])): ?>
+        <?php foreach ($present_types as $type): ?>
+          <?php
+            $color = $cfg['type_colors'][$type] ?? $cfg['default_color'];
+            $label = $cfg['type_labels'][$type] ?? $type;
+          ?>
+          <div class="cc-legend-item" data-type="<?php echo esc_attr($type); ?>">
+            <span class="cc-legend-dot" style="background: <?php echo esc_attr($color); ?>"></span>
+            <span class="cc-legend-label"><?php echo esc_html($label); ?></span>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
 
-      <section class="lag-box" id="lag-ev-past">
-        <h3 class="lag-box-title lag-viking">Passés</h3>
-        <div class="lag-list" id="lag-list-past">
-          <?php foreach ($past as $ev): ?>
-            <button class="lag-item" type="button"
-              data-id="<?php echo (int)$ev['id']; ?>"
-              data-day="<?php echo esc_attr($ev['date_iso']); ?>">
-              <span class="lag-item-main">
-                <span class="lag-item-title"><?php echo esc_html($ev['title']); ?></span>
-                <span class="lag-item-sub" data-short="<?php echo esc_attr(date_i18n('d/m', (int)$ev['timestamp'])); ?>">
-                  <?php echo esc_html($ev['date_human']); ?>
-                </span>
-              </span>
-            </button>
-          <?php endforeach; ?>
+    <div class="cc-weekdays">
+      <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+    </div>
+
+    <div class="cc-grid" role="grid" aria-label="Calendrier"></div>
+
+    <!-- Tooltip desktop -->
+    <div class="cc-tip" aria-hidden="true"></div>
+
+    <!-- Modal mobile -->
+    <div class="cc-modal" aria-hidden="true">
+      <div class="cc-modal-backdrop"></div>
+      <div class="cc-modal-card" role="dialog" aria-modal="true">
+        <div class="cc-modal-title">Évènements</div>
+        <div class="cc-modal-body"></div>
+        <div class="cc-modal-actions">
+          <button type="button" class="cc-btn cc-close">Fermer</button>
         </div>
-      </section>
+      </div>
     </div>
   </div>
 
   <style>
-    .lag-events{
-      --bg: <?php echo $ui['bg']; ?>;
-      --panel: <?php echo $ui['panel']; ?>;
-      --panel2: <?php echo $ui['panel_2']; ?>;
-      --border: <?php echo $ui['border']; ?>;
-      --text: <?php echo $ui['text']; ?>;
-      --muted: <?php echo $ui['muted']; ?>;
-      --muted2: <?php echo $ui['muted2']; ?>;
+    .cc-root{
+      --bg:#0f1116;
+      --panel:#151922;
+      --panel2:#121621;
+      --stroke:rgba(255,255,255,.10);
+      --stroke2:rgba(255,255,255,.14);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.55);
 
-      --gold: <?php echo $ui['gold']; ?>;
-      --goldbg: <?php echo $ui['goldbg']; ?>;
-      --goldbg2: <?php echo $ui['goldbg2']; ?>;
-      --goldbd: <?php echo $ui['goldbd']; ?>;
+      --gold:#9a7424;
+      --goldGlow: rgba(154,116,36,.35);
 
-      --shadow: <?php echo $ui['shadow']; ?>;
-      --sel: <?php echo $ui['sel']; ?>;
-
-      --viking: "<?php echo esc_attr($ui['font_viking']); ?>";
       color: var(--text);
-    }
-
-    .lag-top{
-      display:grid;
-      grid-template-columns: 1.6fr .8fr;
-      gap:14px;
-      align-items:stretch;
-    }
-    .lag-bottom{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-      align-items:stretch;
-    }
-    @media (max-width: 900px){
-      .lag-top{ grid-template-columns: 1fr; }
-      .lag-bottom{ grid-template-columns: 1fr; }
-    }
-
-    .lag-box{
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:14px;
-      box-shadow: 0 16px 40px var(--shadow);
-      overflow:hidden;
-      height: 100%;
-    }
-
-    #lag-ev-calendar{ display:flex; flex-direction:column; }
-
-    .lag-viking{
-      font-family: var(--viking), "Cinzel", serif !important;
-      letter-spacing:.7px;
-      color: var(--gold) !important;
-      text-shadow: 0 1px 0 rgba(0,0,0,.35);
-    }
-
-    .lag-box-title{ margin:0 0 10px 0; font-size:18px; }
-
-    /* DETAIL */
-    .lag-ev-card{ height:100%; display:flex; flex-direction:column; }
-    .lag-ev-top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-    }
-    .lag-ev-title{ margin:0; font-size:22px; line-height:1.12; }
-    .lag-ev-date{
-      color: rgba(255,255,255,.92);
-      font-weight:950;
-      font-size:12px;
-      padding:8px 10px;
-      border-radius:999px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      white-space:nowrap;
-    }
-
-    .lag-ev-two{
-      display:grid;
-      grid-template-columns: .95fr 1.05fr;
-      gap:12px;
-      margin-top:12px;
-      align-items:stretch;
-      flex:1;
-      min-height: 0;
-    }
-    @media (max-width: 900px){ .lag-ev-two{ grid-template-columns: 1fr; } }
-
-    .lag-ev-poster{
-      border-radius:14px;
-      overflow:hidden;
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.22);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      min-height: 220px;
-    }
-    .lag-ev-poster img{
-      width:100%;
-      height:100%;
-      max-height: 380px;
-      object-fit: contain;
-      display:block;
-      filter: contrast(1.02) brightness(.92);
-    }
-
-    .lag-ev-right{ display:flex; flex-direction:column; min-height:0; }
-    .lag-ev-meta{ margin:6px 0; color: var(--muted); }
-    .lag-ev-desc{ margin-top:10px; color: var(--text); opacity:.95; }
-    .lag-ev-desc p{ margin: 0 0 8px 0; }
-
-    .lag-ev-chap-row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .lag-ev-socials,
-    .lag-contact-socials{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      margin-left:6px;
-      margin-top: 6px;
-    }
-    .lag-ev-social{
-      width:22px; height:22px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      text-decoration:none !important;
-    }
-    .lag-ev-social img{
-      width:14px; height:14px;
-      object-fit:contain;
-      display:block;
-      filter: brightness(.95);
-    }
-    .lag-ev-social:hover{
-      border-color: rgba(154,116,36,.40);
-      background: rgba(255,255,255,.05);
-    }
-
-    .lag-ev-more{
-      color: rgba(255,255,255,.92) !important;
-      font-weight:950;
-      text-decoration:none !important;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.10) !important;
-      display:inline-flex;
-      width: fit-content;
-      gap: 8px;
-      align-items:center;
-    }
-    .lag-ev-more:hover{
-      border-color: rgba(154,116,36,.35) !important;
-      background: rgba(255,255,255,.05) !important;
-    }
-
-    .lag-ev-lieu-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .lag-ev-maps-link{
-      width:30px; height:30px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: rgba(255,255,255,.92) !important;
-      text-decoration:none;
-    }
-    .lag-ev-maps-link:hover{ border-color: rgba(154,116,36,.30); }
-
-    .lag-ev-spacer{ flex:1; }
-    .lag-ev-actions{
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    /* BOUTONS OR */
-    .lag-ev-btn,
-    .lag-item,
-    .lag-cal-choice,
-    .lag-modal-close,
-    .lag-day-modal-close{
-      background: var(--goldbg) !important;
-      border: 1px solid var(--goldbd) !important;
-      color: rgba(255,255,255,.95) !important;
-      box-shadow: none !important;
-      text-decoration: none !important;
-    }
-    .lag-ev-btn:hover,
-    .lag-item:hover,
-    .lag-cal-choice:hover{
-      background: var(--goldbg2) !important;
-      border-color: rgba(154,116,36,.55) !important;
-    }
-
-    .lag-ev-btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:10px 12px;
-      border-radius:14px;
-      font-weight:950;
-      cursor:pointer;
-      white-space:nowrap;
-    }
-
-    /* LISTS (sans pastille) */
-    .lag-list{ display:flex; flex-direction:column; gap:10px; }
-    .lag-list.is-scroll{
-      max-height: 240px;
-      overflow:auto;
-      padding-right: 6px;
-    }
-    .lag-list.is-scroll::-webkit-scrollbar{ width: 8px; }
-    .lag-list.is-scroll::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,.12);
-      border-radius: 10px;
-    }
-
-    .lag-item{
-      display:flex; align-items:center;
-      width:100%; text-align:left;
-      border-radius:14px;
-      padding:10px 12px;
-      cursor:pointer;
-      transition: border-color .12s ease, background .12s ease;
+      max-width: 980px;
+      margin: 0 auto;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      outline: none !important;
-      gap: 0;
     }
-    .lag-item:focus-visible{
-      outline: 3px solid var(--sel) !important;
-      outline-offset: 2px !important;
-    }
-    .lag-item-main{ min-width:0; width:100%; }
-    .lag-item-title{ font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .lag-item-sub{ font-size:12px; color: rgba(255,255,255,.78) !important; }
 
-    /* CALENDAR */
-    .lag-cal-head{
+    .cc-head{
       display:grid;
-      grid-template-columns: 28px 1fr 28px;
+      grid-template-columns: 44px 1fr 44px;
       align-items:center;
       gap:10px;
-      margin-bottom:10px;
+      margin-bottom:12px;
+      padding: 10px 12px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--stroke);
+      box-shadow: 0 18px 55px rgba(0,0,0,.55);
     }
-    .lag-cal-title{
+    .cc-title{
       text-align:center;
       font-weight:950;
-      font-size:18px;
-      letter-spacing:.2px;
-      color: rgba(255,255,255,.92);
+      font-size: 28px;
+      letter-spacing:.3px;
+      text-shadow: 0 2px 0 rgba(0,0,0,.35);
     }
-    .lag-cal-nav{
-      width:28px; height:28px;
+
+    /* Flèches centrées + hover OR */
+    .cc-nav{
+      width:44px;height:44px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke) !important;
+      background: rgba(255,255,255,.03) !important;
+      color: var(--text) !important;
+      font-size: 30px;
+      line-height: 1 !important;
+      cursor: pointer;
+      padding: 0 !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-shadow: none !important;
+      outline: none !important;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .cc-nav:hover{
+      border-color: rgba(154,116,36,.55) !important;
+      background: rgba(154,116,36,.14) !important;
+      box-shadow: 0 0 0 4px rgba(154,116,36,.12) !important;
+    }
+    .cc-nav:focus-visible{
+      box-shadow: 0 0 0 4px rgba(154,116,36,.18) !important;
+    }
+
+    /* LÉGENDE */
+    .cc-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 16px;
+      padding: 10px 12px;
+      margin: 0 0 12px 0;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .cc-legend-item{
       display:flex;
       align-items:center;
-      justify-content:center;
-      border:none !important;
-      background: transparent !important;
-      color: rgba(255,255,255,.92) !important;
-      font-size:26px;
-      line-height:1;
-      cursor:pointer;
-      padding:0;
-      box-shadow:none !important;
+      gap:8px;
+      font-weight:900;
+      font-size:13px;
+      color: rgba(255,255,255,.85);
+      white-space:nowrap;
     }
-
-    .lag-cal-weekdays{
-      display:grid; grid-template-columns: repeat(7, 1fr);
-      gap:8px; margin-bottom:8px; font-size:12px; color: var(--muted2);
-    }
-    .lag-cal-weekdays span{ text-align:center; }
-    .lag-cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
-
-    .lag-day{
-      border-radius:12px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.02);
-      min-height:44px;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-      position:relative;
-      font-weight:950;
-      color: rgba(255,255,255,.92);
-      user-select:none;
-      transition: border-color .12s ease;
-    }
-    .lag-day:hover{ border-color: rgba(154,116,36,.20); }
-    .lag-day.is-empty{ opacity:.25; cursor:default; background: transparent !important; }
-    .lag-day.has-events{
-      background: var(--goldbg2);
-      border-color: rgba(154,116,36,.40);
-    }
-    .lag-day.is-selected{
-      outline: 3px solid var(--sel) !important;
-      outline-offset: 2px !important;
-    }
-
-    /* Compteur d'évènements */
-    .lag-day-count{
-      position:absolute;
-      right:6px;
-      top:6px;
-      font-size:11px;
-      font-weight:950;
-      padding:2px 6px;
+    .cc-legend-dot{
+      width:14px;
+      height:14px;
       border-radius:999px;
-      background: rgba(0,0,0,.30);
-      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 0 2px rgba(0,0,0,.25) inset;
+    }
+
+    .cc-weekdays{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      padding: 0 6px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    .cc-weekdays span{ text-align:center; }
+
+    .cc-grid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      padding: 6px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid var(--stroke);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+    }
+
+    /* ✅ HAUTEUR RÉDUITE ICI */
+    .cc-cell{
+      position:relative;
+      min-height: 56px; /* avant: 72px */
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.02);
+      overflow:hidden;
+      cursor: pointer;
+      user-select:none;
+    }
+    .cc-cell:hover{
+      border-color: rgba(154,116,36,.28);
+      box-shadow: 0 0 0 4px rgba(154,116,36,.10);
+    }
+    .cc-cell.is-empty{
+      opacity: .28;
+      cursor: default;
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .cc-num{
+      position:absolute;
+      inset: 7px auto auto 9px;
+      font-weight: 950;
+      font-size: 16px; /* un poil plus compact */
       color: rgba(255,255,255,.92);
+      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+      z-index: 3;
       pointer-events:none;
     }
 
-    /* Modal (commun) */
-    .lag-modal{ display:none; }
-    .lag-modal.is-open{ display:block; }
-    .lag-modal-backdrop{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.65);
-      z-index:9998;
-    }
-    .lag-modal-card{
+    .cc-stripes{
+      position:absolute;
+      inset:0;
       display:flex;
       flex-direction:column;
-      position:fixed;
-      top:50%; left:50%;
+      z-index: 1;
+    }
+    .cc-stripe{
+      flex: 1 1 auto;
+      display:block;
+      text-decoration:none !important;
+      color: transparent !important; /* pas de titre dans les cases */
+      padding: 0 !important;
+      margin: 0 !important;
+      outline: none !important;
+    }
+
+    .cc-veil{
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.05));
+      z-index: 2;
+      pointer-events:none;
+    }
+
+    .cc-tip{
+      position: fixed;
+      z-index: 99999;
+      min-width: 240px;
+      max-width: 320px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      background: rgba(15,17,22,.95);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 60px rgba(0,0,0,.65);
+      display:none;
+      color: rgba(255,255,255,.92);
+      font-size: 13px;
+    }
+    .cc-tip .t-title{ font-weight: 950; margin-bottom: 6px; }
+    .cc-tip .t-line{ color: rgba(255,255,255,.75); }
+    .cc-tip .t-badge{
+      display:inline-block;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      font-weight: 950;
+      font-size: 12px;
+    }
+
+    .cc-modal{ display:none; }
+    .cc-modal.is-open{ display:block; }
+    .cc-modal-backdrop{
+      position: fixed; inset:0;
+      background: rgba(0,0,0,.70);
+      z-index: 99998;
+    }
+    .cc-modal-card{
+      position: fixed;
+      left: 50%;
+      top: 50%;
       transform: translate(-50%,-50%);
-      width:min(460px, 92vw);
+      width: min(520px, 92vw);
+      max-height: min(70vh, 520px);
       background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:14px;
-      z-index:9999;
-      box-shadow: 0 18px 60px rgba(0,0,0,.75);
-    }
-    .lag-modal-title{ font-weight:950; margin-bottom:10px; }
-    .lag-modal-text{ color: var(--muted); margin-bottom:12px; }
-
-
-    .lag-modal-body{
-      flex: 1;
-      min-height: 0;
-    }
-    .lag-modal-actions{
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      padding: 14px;
+      z-index: 99999;
+      box-shadow: 0 18px 70px rgba(0,0,0,.75);
       display:flex;
-      justify-content:flex-end;
-      margin-top:12px;
+      flex-direction: column;
     }
-    .lag-day-modal-items{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-bottom:12px;
-      max-height: 320px;
+    .cc-modal-title{
+      font-weight: 950;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .cc-modal-body{
       overflow:auto;
       padding-right: 6px;
-    }
-    .lag-day-modal-items::-webkit-scrollbar{ width: 8px; }
-    .lag-day-modal-items::-webkit-scrollbar-thumb{
-      background: rgba(255,255,255,.12);
-      border-radius: 10px;
-    }
-
-    .lag-cal-choice{
       display:flex;
-      align-items:center;
-      gap:10px;
-      width:100%;
-      padding:10px 12px;
-      border-radius:14px;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cc-item{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      text-decoration:none !important;
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.92) !important;
+    }
+    .cc-item:hover{ border-color: rgba(154,116,36,.35); }
+    .cc-item .i-title{ font-weight: 950; }
+    .cc-item .i-sub{ color: rgba(255,255,255,.72); font-size: 12px; margin-top: 4px; }
+    .cc-modal-actions{
+      margin-top: 12px;
+      display:flex;
+      justify-content:flex-end;
+    }
+    .cc-btn{
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 950;
+      border: 1px solid rgba(154,116,36,.40);
+      background: rgba(154,116,36,.18);
+      color: rgba(255,255,255,.92);
       cursor:pointer;
-      text-align:left;
-      font-weight:950;
+    }
+    .cc-btn:hover{
+      border-color: rgba(154,116,36,.55);
+      background: rgba(154,116,36,.26);
     }
 
-    /* ===== MOBILE PATCH ===== */
-    @media (max-width: 600px){
-
-      /* Listes: afficher seulement JJ/MM */
-      .lag-item-sub{
-        color: transparent !important;
-        position: relative;
-      }
-      .lag-item-sub::before{
-        content: attr(data-short);
-        color: rgba(255,255,255,.78) !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-      }
-
-      /* Fiche détaillée: date sous le titre */
-      .lag-ev-top{
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .lag-ev-date{
-        margin-top: 8px;
-        align-self: flex-start;
-        white-space: normal;
-      }
-
-      /* Boutons: jamais de dépassement */
-      .lag-ev-actions{ justify-content: stretch; }
-      .lag-ev-rightbtn{ width: 100%; }
-      .lag-ev-btn{
-        width: 100%;
-        max-width: 100%;
-        white-space: normal;
-        line-height: 1.1;
-        text-align: center;
-        padding: 10px 12px;
-      }
-
-      /* Raccourci "Inscription prochainement" */
-      .lag-ev-btn[data-lag-soon="1"]{ font-size: 14px; }
-      .lag-ev-btn[data-lag-soon="1"]{ color: transparent !important; position: relative; }
-      .lag-ev-btn[data-lag-soon="1"]::after{
-        content: "Inscription proch.";
-        color: rgba(255,255,255,.95);
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 10px;
-      }
-		
-	   .lag-ev-detail{ scroll-margin-top: 90px; }
+    @media (max-width: 700px){
+      .cc-title{ font-size: 22px; }
+      .cc-cell{ min-height: 48px; } /* ✅ mobile plus bas */
+      .cc-num{ font-size: 15px; inset: 6px auto auto 8px; }
+      .cc-weekdays{ gap: 8px; font-size: 12px; }
+      .cc-grid{ gap: 8px; }
     }
   </style>
 
   <script>
   (function(){
-    const root = document.querySelector('.lag-events');
+    const root = document.querySelector('.cc-root');
     if(!root) return;
 
-    const ajaxUrl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+    const ajaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
 
-    let year = parseInt(root.dataset.year, 10);
+    let year  = parseInt(root.dataset.year, 10);
     let month = parseInt(root.dataset.month, 10);
-    let selectedDay = '';
-    let selectedEventId = parseInt(root.dataset.selected, 10) || 0;
 
-    let monthData = {
-      events_by_day: <?php echo wp_json_encode($month_map['events_by_day']); ?>,
-      best_by_day:   <?php echo wp_json_encode($month_map['best_by_day']); ?>,
-    };
+    const colors = JSON.parse(root.dataset.colors || '{}');
+    const labels = JSON.parse(root.dataset.labels || '{}');
+    const defaultColor = root.dataset.defaultColor || '#9A7424';
+    let eventsByDay = JSON.parse(root.dataset.events || '{}');
 
-    const calTitle = document.getElementById('lag-cal-title');
-    const calGrid  = document.getElementById('lag-cal-grid');
-    const detailBox= document.getElementById('lag-ev-detail');
+    const legendEnabled = (root.dataset.legendEnabled || '0') === '1';
+    const legendEl = root.querySelector('.cc-legend');
 
-    const dayModal = document.querySelector('#lag-ev-calendar .lag-day-modal');
-    const dayModalItems = document.getElementById('lag-day-modal-items');
+    const grid  = root.querySelector('.cc-grid');
+    const title = root.querySelector('.cc-title');
+    const tip   = root.querySelector('.cc-tip');
+
+    const modal = root.querySelector('.cc-modal');
+    const modalBody = root.querySelector('.cc-modal-body');
+    const closeBtn = root.querySelector('.cc-close');
 
     const monthNames = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-	  
-	function isMobile(){
-      return window.matchMedia('(max-width: 900px)').matches;
-    }
 
-    function scrollToDetail(){
-      if(!isMobile()) return;
-
-      // Ajuste l’offset selon ton header sticky
-      const OFFSET = 90;
-
-      const y = detailBox.getBoundingClientRect().top + window.pageYOffset - OFFSET;
-      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-	}
-
+    function isMobile(){ return window.matchMedia('(max-width: 900px)').matches; }
     function pad(n){ return String(n).padStart(2,'0'); }
     function ymd(y,m,d){ return `${y}-${pad(m)}-${pad(d)}`; }
-    function firstWeekMondayIndex(date){
-      const dow = date.getDay();
-      return (dow + 6) % 7;
+    function frDay(dayIso){
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayIso);
+      if(!m) return dayIso;
+      return `${m[3]}/${m[2]}/${m[1]}`;
+    }
+    function mondayOffset(date){
+      const dow = date.getDay(); // 0=dim
+      return (dow + 6) % 7;      // 0=lun
     }
 
-    function openModal(modal){
-      if(!modal) return;
-      modal.classList.add('is-open');
-      modal.setAttribute('aria-hidden','false');
-    }
-    function closeModal(modal){
-      if(!modal) return;
-      modal.classList.remove('is-open');
-      modal.setAttribute('aria-hidden','true');
-    }
+    function openModal(){ modal.classList.add('is-open'); modal.setAttribute('aria-hidden','false'); }
+    function closeModal(){ modal.classList.remove('is-open'); modal.setAttribute('aria-hidden','true'); }
+    modal.addEventListener('click', (e) => { if(e.target.classList.contains('cc-modal-backdrop')) closeModal(); });
+    closeBtn.addEventListener('click', closeModal);
 
-    function bindModals(scope){
-      // close on backdrop / close btn
-      scope.querySelectorAll('.lag-modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-          if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-modal-close')) {
-            closeModal(modal);
-          }
-        });
-      });
+    function tipHide(){ tip.style.display = 'none'; tip.setAttribute('aria-hidden','true'); }
+    function tipShow(html, x, y){
+      tip.innerHTML = html;
+      tip.style.display = 'block';
+      tip.setAttribute('aria-hidden','false');
 
-      // soon button
-      const soonBtn = scope.querySelector('[data-lag-soon="1"]');
-      if(soonBtn){
-        const soonModal = scope.querySelector('.lag-modal-soon');
-        soonBtn.addEventListener('click', () => openModal(soonModal));
-      }
+      const margin = 14;
+      const w = tip.offsetWidth;
+      const h = tip.offsetHeight;
+      let left = x + margin;
+      let top  = y + margin;
 
-      // contact button
-      const contactBtn = scope.querySelector('[data-lag-contact="1"]');
-      if(contactBtn){
-        const contactModal = scope.querySelector('.lag-modal-contact');
-        contactBtn.addEventListener('click', () => openModal(contactModal));
-      }
+      if(left + w > window.innerWidth - 10) left = x - w - margin;
+      if(top + h > window.innerHeight - 10) top = y - h - margin;
+
+      tip.style.left = left + 'px';
+      tip.style.top  = top + 'px';
     }
 
-    function selectEvent(id){
-      if(!id) return;
-      selectedEventId = parseInt(id, 10);
-
-      const fd = new FormData();
-      fd.append('action', 'lag_events_fetch');
-      fd.append('id', selectedEventId);
-
-      fetch(ajaxUrl, { method:'POST', body: fd })
-        .then(r => r.json())
-        .then(res => {
-          if(res?.success){
-            detailBox.innerHTML = res.data.html;
-            bindModals(detailBox);
-
-            // ✅ remonte automatiquement sur mobile après mise à jour de la fiche
-            requestAnimationFrame(scrollToDetail);
-          }
-        })
-        .catch(()=>{});
-    }
-
-    function showDayChoicesPopup(dayIso){
-      const list = monthData.events_by_day?.[dayIso] || [];
-      if(list.length <= 1) return;
-
-      dayModalItems.innerHTML = '';
-      list.forEach(ev => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'lag-cal-choice';
-
-        const txt = document.createElement('span');
-        txt.textContent = ev.title;
-
-        btn.appendChild(txt);
-
-        btn.addEventListener('click', () => {
-          selectEvent(ev.id);
-          closeModal(dayModal);
-        });
-
-        dayModalItems.appendChild(btn);
-      });
-
-      openModal(dayModal);
-    }
-
-    function selectDay(dayIso){
-      selectedDay = dayIso;
-      renderCalendar();
-
-      const list = monthData.events_by_day?.[dayIso] || [];
-      const best = monthData.best_by_day?.[dayIso];
-
-      if(list.length > 1){
-        showDayChoicesPopup(dayIso);
-        if(best?.id) selectEvent(best.id);
-        else if(list[0]?.id) selectEvent(list[0].id);
+    // ✅ LÉGENDE : n'afficher que les types présents dans le mois
+    function renderLegend(){
+      if(!legendEl) return;
+      if(!legendEnabled){
+        legendEl.style.display = 'none';
         return;
       }
 
-      if(best?.id) selectEvent(best.id);
-      else if(list[0]?.id) selectEvent(list[0].id);
+      const present = new Set();
+      Object.values(eventsByDay || {}).forEach(list => {
+        (list || []).forEach(ev => { if(ev && ev.type) present.add(ev.type); });
+      });
+
+      // si aucun event: on cache la légende
+      if(present.size === 0){
+        legendEl.innerHTML = '';
+        legendEl.style.display = 'none';
+        return;
+      }
+
+      legendEl.style.display = '';
+      legendEl.innerHTML = '';
+
+      // ordre: celui défini dans "colors" (comme ton config)
+      Object.keys(colors || {}).forEach(type => {
+        if(!present.has(type)) return;
+
+        const item = document.createElement('div');
+        item.className = 'cc-legend-item';
+        item.dataset.type = type;
+
+        const dot = document.createElement('span');
+        dot.className = 'cc-legend-dot';
+        dot.style.background = (colors[type] || defaultColor);
+
+        const lab = document.createElement('span');
+        lab.className = 'cc-legend-label';
+        lab.textContent = (labels[type] || type);
+
+        item.appendChild(dot);
+        item.appendChild(lab);
+        legendEl.appendChild(item);
+      });
+
+      // si un type existe dans events mais pas dans colors, on l'ajoute en fin
+      present.forEach(type => {
+        if((colors || {}).hasOwnProperty(type)) return;
+
+        const item = document.createElement('div');
+        item.className = 'cc-legend-item';
+        item.dataset.type = type;
+
+        const dot = document.createElement('span');
+        dot.className = 'cc-legend-dot';
+        dot.style.background = defaultColor;
+
+        const lab = document.createElement('span');
+        lab.className = 'cc-legend-label';
+        lab.textContent = (labels[type] || type);
+
+        item.appendChild(dot);
+        item.appendChild(lab);
+        legendEl.appendChild(item);
+      });
     }
 
-    function renderCalendar(){
-      calTitle.textContent = `${monthNames[month-1]} ${year}`;
-      calGrid.innerHTML = '';
+    function render(){
+      title.textContent = `${monthNames[month-1]} ${year}`;
+      grid.innerHTML = '';
+
+      renderLegend();
 
       const first = new Date(year, month-1, 1);
       const daysInMonth = new Date(year, month, 0).getDate();
-      const offset = firstWeekMondayIndex(first);
+      const offset = mondayOffset(first);
 
       for(let i=0;i<offset;i++){
         const div = document.createElement('div');
-        div.className = 'lag-day is-empty';
-        calGrid.appendChild(div);
+        div.className = 'cc-cell is-empty';
+        grid.appendChild(div);
       }
 
       for(let d=1; d<=daysInMonth; d++){
         const dayIso = ymd(year, month, d);
+        const list = eventsByDay[dayIso] || [];
+
         const cell = document.createElement('div');
+        cell.className = 'cc-cell';
+        cell.setAttribute('role','gridcell');
 
-        const list = monthData.events_by_day?.[dayIso] || null;
+        const num = document.createElement('div');
+        num.className = 'cc-num';
+        num.textContent = d;
+        cell.appendChild(num);
 
-        cell.className = 'lag-day' + (list ? ' has-events' : '');
-        cell.textContent = d;
+        if(list.length){
+          const stripes = document.createElement('div');
+          stripes.className = 'cc-stripes';
 
-        if(list && list.length > 1){
-          const badge = document.createElement('span');
-          badge.className = 'lag-day-count';
-          badge.textContent = '+' + (list.length - 1);
-          cell.appendChild(badge);
-        }
+          list.forEach(ev => {
+            const a = document.createElement('a');
+            a.className = 'cc-stripe';
+            a.href = ev.url;
 
-        if(dayIso === selectedDay) cell.classList.add('is-selected');
+            const col = colors[ev.type] || defaultColor;
+            a.style.background = col;
 
-        if(list && list.length){
-          cell.addEventListener('click', () => selectDay(dayIso));
+            a.addEventListener('mousemove', (e) => {
+              if(isMobile()) return;
+              const html =
+                `<div class="t-title">${ev.title}</div>` +
+                `<div class="t-line">${frDay(dayIso)} • ${ev.time}</div>` +
+                (ev.loc ? `<div class="t-line">${ev.loc}</div>` : ``) +
+                `<div class="t-badge">Cliquer pour ouvrir</div>`;
+              tipShow(html, e.clientX, e.clientY);
+            });
+            a.addEventListener('mouseleave', () => { if(!isMobile()) tipHide(); });
+
+            stripes.appendChild(a);
+          });
+
+          cell.appendChild(stripes);
+
+          const veil = document.createElement('div');
+          veil.className = 'cc-veil';
+          cell.appendChild(veil);
+
+          cell.addEventListener('click', (e) => {
+            if(!isMobile()) return; // desktop = clic géré par <a>
+            e.preventDefault();
+            e.stopPropagation();
+
+            if(list.length === 1){
+              window.location.href = list[0].url;
+              return;
+            }
+
+            modalBody.innerHTML = '';
+            list.forEach(ev => {
+              const a = document.createElement('a');
+              a.className = 'cc-item';
+              a.href = ev.url;
+
+              const left = document.createElement('div');
+
+              const t = document.createElement('div');
+              t.className = 'i-title';
+              t.textContent = ev.title;
+
+              const s = document.createElement('div');
+              s.className = 'i-sub';
+              s.textContent = `${frDay(dayIso)} • ${ev.time}` + (ev.loc ? ` • ${ev.loc}` : '');
+
+              left.appendChild(t);
+              left.appendChild(s);
+
+              const dot = document.createElement('div');
+              dot.style.width = '14px';
+              dot.style.height = '14px';
+              dot.style.borderRadius = '999px';
+              dot.style.marginTop = '2px';
+              dot.style.background = (colors[ev.type] || defaultColor);
+
+              a.appendChild(left);
+              a.appendChild(dot);
+
+              modalBody.appendChild(a);
+            });
+
+            openModal();
+          });
+
         } else {
-          cell.addEventListener('click', () => selectDay(dayIso)); // option: clique jour vide => pas d'action, mais conserve sélection
+          cell.addEventListener('mouseenter', tipHide);
         }
-        calGrid.appendChild(cell);
+
+        grid.appendChild(cell);
       }
     }
 
     function loadMonth(y, m){
       const fd = new FormData();
-      fd.append('action', 'lag_events_month');
+      fd.append('action', 'chapter_calendar_month');
       fd.append('year', y);
       fd.append('month', m);
 
       fetch(ajaxUrl, { method:'POST', body: fd })
         .then(r => r.json())
         .then(res => {
-          if(!res?.success) return;
+          if(!res || !res.success) return;
           year = res.data.year;
           month = res.data.month;
-          monthData = {
-            events_by_day: res.data.events_by_day || {},
-            best_by_day:   res.data.best_by_day || {},
-          };
-          selectedDay = '';
-          renderCalendar();
+          eventsByDay = res.data.events || {};
+          tipHide();
+          render();
         })
         .catch(()=>{});
     }
 
-    // nav mois
-    document.querySelectorAll('.lag-cal-nav').forEach(b => {
-      b.addEventListener('click', () => {
-        const dir = parseInt(b.dataset.dir, 10);
-        let newM = month + dir, newY = year;
+    root.querySelectorAll('.cc-nav').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = parseInt(btn.dataset.dir, 10);
+        let newM = month + dir;
+        let newY = year;
         if(newM < 1){ newM = 12; newY--; }
         if(newM > 12){ newM = 1; newY++; }
         loadMonth(newY, newM);
       });
     });
 
-    // click listes
-    document.querySelectorAll('.lag-item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const day = btn.dataset.day || '';
-        if(day){ selectedDay = day; renderCalendar(); }
-        selectEvent(id);
-      });
+    document.addEventListener('scroll', () => { if(!isMobile()) tipHide(); }, { passive:true });
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        tipHide();
+        closeModal();
+      }
     });
 
-    // bind modal jour
-    if(dayModal){
-      dayModal.addEventListener('click', (e) => {
-        if (e.target.classList.contains('lag-modal-backdrop') || e.target.classList.contains('lag-day-modal-close')) {
-          closeModal(dayModal);
-        }
-      });
-      const closeBtn = dayModal.querySelector('.lag-day-modal-close');
-      if(closeBtn){
-        closeBtn.addEventListener('click', () => closeModal(dayModal));
-      }
-    }
-
-    // bind modals fiche
-    bindModals(detailBox);
-
-    // listes scroll > 5
-    function applyScrollIfNeeded(listEl){
-      if(!listEl) return;
-      const items = listEl.querySelectorAll('.lag-item').length;
-      if(items > 5) listEl.classList.add('is-scroll');
-    }
-    applyScrollIfNeeded(document.getElementById('lag-list-upcoming'));
-    applyScrollIfNeeded(document.getElementById('lag-list-past'));
-
-    renderCalendar();
+    render();
   })();
   </script>
   <?php
